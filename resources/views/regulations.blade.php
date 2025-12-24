@@ -364,7 +364,7 @@
                         <div class="regulation-info">
                             <div class="regulation-header">
                                 <h3 class="regulation-title">{{ getFriendlyLabel($quyDinh->TenThamSo) }}</h3>
-                                <button class="edit-regulation-btn" onclick="openEditModal({{ $quyDinh->id }})">
+                                <button class="edit-regulation-btn" onclick="openEditModal({{ $quyDinh->MaThamSo }})">
                                     ✏️ Sửa
                                 </button>
                             </div>
@@ -438,7 +438,7 @@
     const regulations = [
         @foreach($quyDinhs as $quyDinh)
         {
-            id: {{ $quyDinh->id }},
+            id: {{ $quyDinh->MaThamSo }},
             name: '{{ $quyDinh->TenThamSo }}',
             value: {{ $quyDinh->GiaTri }},
             validation: getValidationInfo('{{ $quyDinh->TenThamSo }}')

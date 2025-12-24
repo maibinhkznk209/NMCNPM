@@ -62,35 +62,30 @@ class DauSachController extends Controller
         return view('dausach.index', ['items' => $items]);
     }
 
-    /**
-     * BM4 - Tiếp nhận đầu sách mới
-     * Input chấp nhận:
-     * - TenDauSach hoặc TenDauSach
-     * - MaTheLoai hoặc theLoais
-     * - tacGias (array/json/comma)
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'TenDauSach' => 'nullable|string|max:255',
-            'MaTheLoai' => 'nullable',
-            'theLoais' => 'nullable',
-            'tacGias' => 'required',
+            'TenDauSach' => 'required|string|max:255',
+            'MaTheLoai' => 'required',
+            'tacGias' => 'nullable',
+            'MaTacGia' => 'nullable',
+            'MaTacGia.*' => 'nullable',
         ], [
-            'tacGias.required' => 'Vui lòng chọn tác giả',
+            'TenDauSach.required' => 'Vui lòng nhập tên đầu sách',
+            'MaTheLoai.required' => 'Vui lòng chọn thể loại',
         ]);
 
-        $ten = trim((string)($request->get('TenDauSach') ?: $request->get('TenDauSach')));
+        $ten = trim((string)$request->get('TenDauSach'));
         if ($ten === '') {
             return back()->withInput()->with('error', 'Vui lòng nhập tên đầu sách');
         }
 
-        $maTheLoai = $this->normalizeSingleId($request->get('MaTheLoai', $request->get('theLoais')));
+        $maTheLoai = $this->normalizeSingleId($request->get('MaTheLoai'));
         if (!$maTheLoai) {
             return back()->withInput()->with('error', 'Vui lòng chọn thể loại');
         }
 
-        $maTacGiaList = $this->normalizeIdList($request->get('tacGias'));
+        $maTacGiaList = $this->normalizeIdList($request->get('tacGias', $request->get('MaTacGia')));
         if (count($maTacGiaList) === 0) {
             return back()->withInput()->with('error', 'Vui lòng chọn ít nhất 1 tác giả');
         }
@@ -115,7 +110,6 @@ class DauSachController extends Controller
                 'NgayNhap' => $now,
             ]);
 
-            // attach tác giả qua relation nếu có, fallback insert CT_TACGIA
             if (method_exists($dauSach, 'DS_TG')) {
                 $dauSach->DS_TG()->sync($uniqueTacGia);
             } elseif (method_exists($dauSach, 'tacGias')) {
@@ -146,8 +140,6 @@ class DauSachController extends Controller
         }
     }
 
-    // ----------------- helpers -----------------
-
     private function normalizeIdList($value): array
     {
         if (is_array($value)) {
@@ -157,7 +149,6 @@ class DauSachController extends Controller
         if (is_string($value)) {
             $value = trim($value);
 
-            // JSON
             if ($value !== '' && ($value[0] === '[' || $value[0] === '{')) {
                 $decoded = json_decode($value, true);
                 if (is_array($decoded)) {
@@ -165,7 +156,6 @@ class DauSachController extends Controller
                 }
             }
 
-            // CSV
             if (str_contains($value, ',')) {
                 $parts = array_map('trim', explode(',', $value));
                 return array_values(array_filter(array_map([$this, 'normalizeSingleId'], $parts)));
@@ -182,13 +172,11 @@ class DauSachController extends Controller
     private function normalizeSingleId($value): ?int
     {
         if (is_null($value)) return null;
-
         if (is_int($value)) return $value;
 
         if (is_string($value)) {
             $value = trim($value);
 
-            // JSON single
             if ($value !== '' && ($value[0] === '[' || $value[0] === '{')) {
                 $decoded = json_decode($value, true);
                 if (is_array($decoded)) {

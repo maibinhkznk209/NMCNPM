@@ -8,6 +8,7 @@ use App\Http\Controllers\LoaiDocGiaController;
 use App\Http\Controllers\NhaXuatBanController;
 use App\Http\Controllers\TacGiaController;
 use App\Http\Controllers\QuyDinhController;
+use App\Http\Controllers\ReportController;
 
 Route::get('borrow-records/doc-gia/{MaDocGia}', [PhieuMuonController::class, 'getByReader']);
 Route::apiResource('borrow-records', PhieuMuonController::class);
@@ -37,3 +38,20 @@ Route::get('regulations/{MaThamSo}', [QuyDinhController::class, 'show']);
 Route::put('regulations/{MaThamSo}', [QuyDinhController::class, 'update']);
 Route::patch('regulations/{MaThamSo}', [QuyDinhController::class, 'update']);
 Route::get('regulations/{MaThamSo}/validation-info', [QuyDinhController::class, 'getValidationInfo']);
+
+Route::prefix('reports')->controller(ReportController::class)->group(function () {
+    Route::get('/', 'index');
+
+    Route::get('/genre-statistics', 'genreStatistics');
+    Route::get('/overdue-books', 'overdueBooks');
+
+    Route::get('/export/genre-statistics', 'exportGenreStatistics');
+    Route::get('/export/overdue-books', 'exportOverdueBooks');
+
+    Route::get('/debug/overdue-books', 'debugOverdueBooks');
+    Route::get('/compare/overdue-books', 'compareOverdueResults');
+
+    Route::get('/check-negative-fines', 'checkNegativeFines');
+    Route::post('/fix-negative-fines', 'fixNegativeFines');
+    Route::post('/recalculate-all-fines', 'recalculateAllFines');
+});

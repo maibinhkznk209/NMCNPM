@@ -10,13 +10,28 @@ use Carbon\Carbon;
 class ReportController extends Controller
 {
     
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $type = $request->query('type');
+
+        if ($type === 'genre') {
+            return $this->genreStatistics($request);
+        }
+
+        if ($type === 'overdue') {
+            return $this->overdueBooks($request);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Report API is working',
+            'hint' => [
+                'genre' => '/api/reports?type=genre&month=12&year=2025',
+                'overdue' => '/api/reports?type=overdue&date=2025-12-25',
+            ],
         ]);
     }
+
 
     
     public function genreStatistics(Request $request): JsonResponse
@@ -260,5 +275,9 @@ class ReportController extends Controller
         if (is_numeric($value)) return (float)$value;
 
         return 0.0;
+    }
+        public function page()
+    {
+        return view('reports'); 
     }
 }

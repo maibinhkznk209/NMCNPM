@@ -310,7 +310,7 @@
                 <tbody>
                     @forelse ($docGias as $docGia)
                         <tr>
-                            <td>{{ $docGia->id }}</td>
+                            <td>{{ $docGia->MaDocGia }}</td>
                             <td>
                                 <div class="reader-info">
                                     <strong>{{ $docGia->TenDocGia }}</strong>
@@ -342,8 +342,8 @@
                             </td>
                             <td class="actions">
                                 <div class="action-buttons">
-                                    <button class="btn edit-btn" onclick="openEditModal('{{ $docGia->id }}')">✏️ Sửa</button>
-                                    <form action="{{ route('readers.destroy', $docGia->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa độc giả này?\n\nLưu ý: Không thể xóa nếu độc giả còn nợ.')">
+                                    <button class="btn edit-btn" onclick="openEditModal('{{ $docGia->MaDocGia }}')">✏️ Sửa</button>
+                                    <form action="{{ route('readers.destroy', $docGia->MaDocGia) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa độc giả này?\n\nLưu ý: Không thể xóa nếu độc giả còn nợ.')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn delete-btn">🗑️ Xóa</button>

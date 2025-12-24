@@ -11,15 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
-/**
- * PhieuMuonController (schema-aligned)
- *
- * Schema (MySQL):
- *  - PHIEUMUON(MaPhieuMuon PK varchar, MaDocGia FK varchar, NgayMuon date, NgayHenTra date)
- *  - CT_PHIEUMUON(PK(MaPhieuMuon,MaSach), MaSach FK bigint, NgayTra date null, TienPhat decimal)
- *  - SACH(MaSach PK bigint, MaDauSach FK bigint, ...)
- *  - DAUSACH(MaDauSach PK bigint, TenDauSach, MaTheLoai, ...)
- */
+
 class PhieuMuonController extends Controller
 {
     private function today(): Carbon
@@ -191,6 +183,7 @@ class PhieuMuonController extends Controller
 
         return response()->json(['success' => true, 'data' => $data]);
     }
+
 
     /**
      * GET /api/borrow-records/{MaPhieuMuon}
@@ -553,38 +546,86 @@ class PhieuMuonController extends Controller
         return response()->json(['success' => true, 'data' => $rows]);
     }
 
-    /**
-     * GET /api/edit-books-list?phieu_muon_id=...
-     */
+   
     public function editBooksListApi(Request $request): JsonResponse
     {
-        $pmId = (string)$request->query('phieu_muon_id', '');
-        if ($pmId === '') {
-            return response()->json(['success' => false, 'message' => 'Thiếu phieu_muon_id'], 400);
+        $pmId = $request->query('MaPhieuMuon')
+            ?? $request->query('phieu_muon_id');
+
+        if (!$pmId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Thiếu MaPhieuMuon'
+            ], 400);
         }
 
         $selected = DB::table('CT_PHIEUMUON')
             ->where('MaPhieuMuon', $pmId)
             ->pluck('MaSach')
-            ->map(fn($v) => (int)$v)
+            ->map(fn ($v) => (int)$v)
             ->toArray();
 
-        $books = $this->booksListApi()->getData(true);
+        $books = DB::table('SACH as s')
+            ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
+            ->leftJoin('NHAXUATBAN as nxb', 'nxb.MaNXB', '=', 's.MaNXB')
+            ->select(
+                's.MaSach',
+                'ds.TenDauSach',
+                's.NamXuatBan',
+                's.TriGia',
+                'nxb.TenNXB'
+            )
+            ->orderBy('s.MaSach')
+            ->get();
 
         return response()->json([
             'success' => true,
             'data' => [
                 'selected' => $selected,
-                'books' => $books['data'] ?? [],
-            ],
+                'books' => $books
+            ]
         ]);
     }
+
 
     /**
      * Render UI page (Blade)
      */
     public function showBorrowRecordsPage()
     {
-        return view('borrow-records');
+        $today = Carbon::today();
+
+        $phieuMuons = DB::table('PHIEUMUON as pm')
+            ->join('DOCGIA as dg', 'dg.MaDocGia', '=', 'pm.MaDocGia')
+            ->leftJoin('CT_PHIEUMUON as ct', 'ct.MaPhieuMuon', '=', 'pm.MaPhieuMuon')
+            ->select(
+                'pm.MaPhieuMuon',
+                'pm.MaDocGia',
+                'dg.TenDocGia',
+                'pm.NgayMuon',
+                'pm.NgayHenTra',
+                DB::raw('SUM(CASE WHEN ct.NgayTra IS NULL THEN 1 ELSE 0 END) as so_sach_chua_tra'),
+                DB::raw('COUNT(ct.MaSach) as tong_sach')
+            )
+            ->groupBy('pm.MaPhieuMuon', 'pm.MaDocGia', 'dg.TenDocGia', 'pm.NgayMuon', 'pm.NgayHenTra')
+            ->orderBy('pm.NgayMuon', 'desc')
+            ->get()
+            ->map(function ($r) use ($today) {
+                $ngayHenTra = $r->NgayHenTra ? Carbon::parse($r->NgayHenTra) : null;
+
+                $status = 'active';
+                if ((int)$r->tong_sach > 0 && (int)$r->so_sach_chua_tra === 0) {
+                    $status = 'returned';
+                } elseif ($ngayHenTra && $ngayHenTra->lt($today)) {
+                    $status = 'overdue';
+                }
+
+                $r->TrangThai = $status;
+                return $r;
+            });
+
+        return view('borrow-records', compact('phieuMuons'));
     }
+
+
 }

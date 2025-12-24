@@ -209,7 +209,7 @@
                 <tbody>
                     @forelse ($loaiDocGias as $loaiDocGia)
                         <tr>
-                            <td>{{ $loaiDocGia->id }}</td>
+                            <td>{{ $loaiDocGia->MaLoaiDocGia }}</td>
                             <td>
                                 <div class="type-info">
                                     <strong>{{ $loaiDocGia->TenLoaiDocGia }}</strong>
@@ -221,8 +221,8 @@
                                 </span>
                             </td>
                             <td class="actions">
-                                <button class="btn edit-btn" onclick="openEditModal('{{ $loaiDocGia->id }}')">✏️ Sửa</button>
-                                <form action="{{ route('reader-types.destroy', $loaiDocGia->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa loại độc giả này?\n\nLưu ý: Không thể xóa nếu còn độc giả thuộc loại này.')">
+                                <button class="btn edit-btn" onclick="openEditModal('{{ $loaiDocGia->MaLoaiDocGia }}')">✏️ Sửa</button>
+                                <form action="{{ route('reader-types.destroy', $loaiDocGia->MaLoaiDocGia) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa loại độc giả này?\n\nLưu ý: Không thể xóa nếu còn độc giả thuộc loại này.')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn delete-btn">🗑️ Xóa</button>

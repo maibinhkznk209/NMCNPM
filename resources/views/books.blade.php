@@ -26,7 +26,6 @@
   .toast.success { background:#c6f6d5; color:#22543d; }
   .toast.error { background:#fed7d7; color:#742a2a; }
 
-  /* modal */
   .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; }
   .modal-content { background:white; width:520px; max-width: calc(100% - 24px); margin: 6% auto; border-radius:12px; overflow:hidden; }
   .modal-header { padding:14px 16px; background:#2b6cb0; color:white; display:flex; justify-content:space-between; align-items:center; }
@@ -45,13 +44,12 @@
 
   <div class="header">
     <div>
-      <h1>BM6 — Tra cứu cuốn sách</h1>
-      <p>BM10 — Cập nhật tình trạng cuốn sách</p>
+      <h1>Tra cứu cuốn sách</h1>
+      <p>Cập nhật tình trạng cuốn sách</p>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <a class="btn btn-secondary" href="{{ route('home') }}">Trang chủ</a>
-      {{-- File BM4+BM5 bạn sẽ thêm route sau --}}
-      <a class="btn btn-outline" href="{{ route('intake.index') }}">Tiếp nhận (BM4+BM5)</a>
+      <a class="btn btn-outline" href="{{ route('intake.index') }}">Tiếp nhận</a>
     </div>
   </div>
 
@@ -62,15 +60,13 @@
     <div class="toast error">{{ session('error') }}</div>
   @endif
 
-  {{-- BM6: Tra cứu --}}
   <form class="toolbar" method="GET" action="{{ route('books.index') }}">
     <input type="text" name="search" value="{{ request('search') }}"
            placeholder="Tìm theo mã cuốn/mã sách/tên đầu sách/tác giả..." />
 
-    {{-- nếu controller bạn có lọc tình trạng theo chuỗi --}}
     <select name="tinhtrang">
       <option value="">-- Tất cả tình trạng --</option>
-      <option value="Sẵn có" {{ request('tinhtrang')==='Sẵn có' ? 'selected' : '' }}>Sẵn có</option>
+      <option value="Có sẵn" {{ request('tinhtrang')==='Có sẵn' ? 'selected' : '' }}>Có sẵn</option>
       <option value="Đã cho mượn" {{ request('tinhtrang')==='Đã cho mượn' ? 'selected' : '' }}>Đã cho mượn</option>
       <option value="Hỏng" {{ request('tinhtrang')==='Hỏng' ? 'selected' : '' }}>Hỏng</option>
       <option value="Mất" {{ request('tinhtrang')==='Mất' ? 'selected' : '' }}>Mất</option>
@@ -90,7 +86,7 @@
         <th>Thể loại</th>
         <th>Tác giả</th>
         <th style="width:140px;">Tình trạng</th>
-        <th style="width:160px;">BM10</th>
+        <th style="width:160px;">Cập nhật tình trạng</th>
       </tr>
     </thead>
 
@@ -123,7 +119,6 @@
 
 </div>
 
-{{-- Modal BM10 --}}
 <div id="statusModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -148,7 +143,7 @@
           <label>Tình trạng</label>
           <select id="bm10_tinhTrang" name="TinhTrang" required>
             <option value="">-- Chọn tình trạng --</option>
-            <option value="Sẵn có">Sẵn có</option>
+            <option value="Có sẵn">Có sẵn</option>
             <option value="Đã cho mượn">Đã cho mượn</option>
             <option value="Hỏng">Hỏng</option>
             <option value="Mất">Mất</option>
@@ -172,7 +167,6 @@
     document.getElementById('bm10_tenSach').value = tenSach || '';
     document.getElementById('bm10_tinhTrang').value = tinhTrang || '';
 
-    // đúng route của bạn: /books/cuon-sach/{maCuonSach}/tinh-trang (POST)
     document.getElementById('statusForm').action =
       "{{ url('/books/cuon-sach') }}/" + encodeURIComponent(maCuon) + "/tinh-trang";
 

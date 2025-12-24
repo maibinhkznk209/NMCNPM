@@ -13,7 +13,7 @@
     <tbody>
         @forelse ($danhSachSach as $sach)
             <tr>
-                <td>{{ $sach->MaSach ?? $sach->id }}</td>
+                <td>{{ $sach->MaSach ?? $sach->MaSach }}</td>
                 <td><strong>{{ $sach->TenDauSach ?? $sach->TenSach ?? '' }}</strong></td>
                 <td>{{ $sach->TenTheLoai ?? '' }}</td>
                 <td>{{ $sach->TenNXB ?? '' }}</td>

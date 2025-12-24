@@ -35,8 +35,7 @@
 
   <div class="header">
     <div>
-      <h1>BM4 + BM5 — Tiếp nhận sách</h1>
-      <p>BM4: tạo đầu sách. BM5: nhập sách + tạo các cuốn theo số lượng.</p>
+      <h1>TIẾP NHẬN SÁCH</h1>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <a class="btn btn-secondary" href="{{ route('home') }}">Trang chủ</a>
@@ -51,9 +50,8 @@
     <div class="toast error">{{ session('error') }}</div>
   @endif
 
-  {{-- ================== BM4 ================== --}}
   <div class="card">
-    <div class="card-hd">BM4 — Tiếp nhận đầu sách mới</div>
+    <div class="card-hd">Phiếu Nhận Đầu Sách</div>
     <div class="card-bd">
       <form method="POST" action="{{ route('intake.dausach.store') }}">
         @csrf
@@ -72,9 +70,7 @@
                 <option value="{{ $tl->MaTheLoai }}">{{ $tl->TenTheLoai }}</option>
               @endforeach
             </select>
-            <div class="hint">
-              DAUSACH có khóa ngoại MaTheLoai (FK THELOAI). :contentReference[oaicite:11]{index=11}
-            </div>
+           
           </div>
         </div>
 
@@ -85,30 +81,24 @@
               <option value="{{ $tg->MaTacGia }}">{{ $tg->TenTacGia }}</option>
             @endforeach
           </select>
-          <div class="hint">
-            Giữ Ctrl/Cmd để chọn nhiều tác giả (quan hệ n-n qua CT_TACGIA). :contentReference[oaicite:12]{index=12}
-          </div>
+          <div class="hint">Giữ Ctrl/Cmd để chọn nhiều tác giả.</div>
         </div>
 
         <div class="form-group">
           <label for="NgayNhapDauSach">Ngày nhập</label>
           <input type="date" id="NgayNhapDauSach" name="NgayNhap"
                  value="{{ date('Y-m-d') }}" required>
-          <div class="hint">
-            DAUSACH có NgayNhap (DATE, NOT NULL, mặc định ngày hiện tại). :contentReference[oaicite:13]{index=13}
-          </div>
         </div>
 
         <div class="toolbar">
-          <button type="submit" class="btn btn-primary">Tạo đầu sách (BM4)</button>
+          <button type="submit" class="btn btn-primary">Tạo đầu sách</button>
         </div>
       </form>
     </div>
   </div>
 
-  {{-- ================== BM5 ================== --}}
   <div class="card">
-    <div class="card-hd">BM5 — Tiếp nhận sách mới (tạo SACH + tạo CUONSACH theo số lượng)</div>
+    <div class="card-hd">Phiếu Nhận Sách</div>
     <div class="card-bd">
       <form method="POST" action="{{ route('intake.sach.store') }}">
         @csrf
@@ -122,9 +112,6 @@
                 <option value="{{ $ds->MaDauSach }}">{{ $ds->TenDauSach }}</option>
               @endforeach
             </select>
-            <div class="hint">
-              SACH tham chiếu DAUSACH bằng MaDauSach (FK). :contentReference[oaicite:14]{index=14}
-            </div>
           </div>
 
           <div class="form-group">
@@ -135,9 +122,6 @@
                 <option value="{{ $nxb->MaNXB }}">{{ $nxb->TenNXB }}</option>
               @endforeach
             </select>
-            <div class="hint">
-              SACH có MaNXB (FK NHAXUATBAN). :contentReference[oaicite:15]{index=15}
-            </div>
           </div>
         </div>
 
@@ -146,17 +130,12 @@
             <label for="NamXuatBan">Năm xuất bản</label>
             <input type="number" id="NamXuatBan" name="NamXuatBan"
                    min="{{ date('Y') - 8 }}" max="{{ date('Y') }}" required>
-            <div class="hint">
-              Chỉ nhận sách xuất bản trong vòng 8 năm. :contentReference[oaicite:16]{index=16}
-            </div>
+            <div class="hint">Chỉ nhận sách xuất bản trong vòng số năm theo quy định.</div>
           </div>
 
           <div class="form-group">
             <label for="TriGia">Trị giá</label>
             <input type="number" id="TriGia" name="TriGia" min="0" step="0.01" required>
-            <div class="hint">
-              SACH.TriGia là DECIMAL và CHECK(TRIGIA ≥ 0). :contentReference[oaicite:17]{index=17}
-            </div>
           </div>
         </div>
 
@@ -164,24 +143,18 @@
           <div class="form-group">
             <label for="SoLuong">Số lượng cuốn</label>
             <input type="number" id="SoLuong" name="SoLuong" min="1" required>
-            <div class="hint">
-              SACH có SoLuong (INT, NOT NULL). :contentReference[oaicite:18]{index=18}
-              Hệ thống sẽ tạo tương ứng các bản ghi CUONSACH.
-            </div>
+            <div class="hint">Hệ thống sẽ tạo tương ứng các bản ghi CUONSACH theo số lượng.</div>
           </div>
 
           <div class="form-group">
             <label for="NgayNhapSach">Ngày nhập</label>
             <input type="date" id="NgayNhapSach" name="NgayNhap"
                    value="{{ date('Y-m-d') }}" required>
-            <div class="hint">
-              CUONSACH có NgayNhap (DATE, NOT NULL). :contentReference[oaicite:19]{index=19}
-            </div>
           </div>
         </div>
 
         <div class="toolbar">
-          <button type="submit" class="btn btn-primary">Tiếp nhận sách (BM5)</button>
+          <button type="submit" class="btn btn-primary">Tiếp nhận sách</button>
         </div>
       </form>
     </div>

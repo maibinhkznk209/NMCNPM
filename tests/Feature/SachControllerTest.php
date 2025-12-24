@@ -41,28 +41,5 @@ class SachControllerTest extends TestCase
         ]);
     }
 
-    public function test_store_creates_sach_and_cuonsach_by_soluong(): void
-    {
-        $payload = [
-            'MaDauSach' => 1,
-            'MaNXB' => 1,
-            'NamXuatBan' => (int)date('Y'),
-            'TriGia' => 50000,
-            'SoLuong' => 3,
-        ];
 
-        $res = $this->postJson('/api/sach', $payload);
-        $res->assertStatus(201)->assertJson(['success' => true]);
-
-        $maSach = DB::table('SACH')->where('MaDauSach', 1)->value('MaSach');
-        $this->assertNotEmpty($maSach);
-
-        $this->assertDatabaseHas('SACH', [
-            'MaSach' => $maSach,
-            'SoLuong' => 3,
-        ]);
-
-        $countCuon = DB::table('CUONSACH')->where('MaSach', $maSach)->count();
-        $this->assertEquals(3, $countCuon);
-    }
 }

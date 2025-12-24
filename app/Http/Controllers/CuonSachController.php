@@ -71,11 +71,7 @@ class CuonSachController extends Controller
         return view('cuonsach.index', ['items' => $items]);
     }
 
-    /**
-     * BM5 (phần bổ sung số lượng): nhập thêm cuốn cho 1 MaSach đã tồn tại
-     * - Tạo thêm N dòng CUONSACH
-     * - Tăng SACH.SoLuong tương ứng
-     */
+ 
     public function store(Request $request)
     {
         $request->validate([

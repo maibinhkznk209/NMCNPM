@@ -10,46 +10,111 @@ use Illuminate\Support\Facades\DB;
 
 class SachController extends Controller
 {
-    public function index(Request $request)
+    private function mapTinhTrangIntToText(?int $v): string
     {
-        $q = DB::table('SACH as s')
-            ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
-            ->leftJoin('NHAXUATBAN as nxb', 'nxb.MaNXB', '=', 's.MaNXB')
-            ->select([
-                's.MaSach',
-                's.MaDauSach',
-                's.MaNXB',
-                's.NamXuatBan',
-                's.TriGia',
-                's.SoLuong',
-                'ds.TenDauSach',
-                'nxb.TenNXB',
-            ]);
-
-        if ($maDauSach = $request->get('MaDauSach')) {
-            $q->where('s.MaDauSach', '=', $maDauSach);
-        }
-
-        if ($maNXB = $request->get('MaNXB')) {
-            $q->where('s.MaNXB', '=', $maNXB);
-        }
-
-        if ($nam = $request->get('NamXuatBan')) {
-            $q->where('s.NamXuatBan', '=', (int)$nam);
-        }
-
-        $items = $q->orderByDesc('s.MaSach')->paginate(20);
-
-        if ($request->expectsJson()) {
-            return response()->json($items);
-        }
-
-        return view('sach.index', ['items' => $items]);
+        return match ($v) {
+            CuonSach::TINH_TRANG_CO_SAN => 'Có sẵn',
+            CuonSach::TINH_TRANG_DANG_MUON => 'Đã cho mượn',
+            CuonSach::TINH_TRANG_HONG => 'Hỏng',
+            CuonSach::TINH_TRANG_BI_MAT => 'Mất',
+            default => 'Không xác định',
+        };
     }
 
-    /**
-     * BM5 - Tiếp nhận sách mới theo ấn bản (SACH) và sinh CUONSACH theo SoLuong
-     */
+    private function mapTinhTrangTextToInt(string $v): ?int
+    {
+        $v = trim(mb_strtolower($v));
+        return match ($v) {
+            'có sẵn', 'co san', 'sẵn có', 'san co' => CuonSach::TINH_TRANG_CO_SAN,
+            'đã cho mượn', 'da cho muon', 'đang được mượn', 'dang duoc muon' => CuonSach::TINH_TRANG_DANG_MUON,
+            'hỏng', 'hong' => CuonSach::TINH_TRANG_HONG,
+            'mất', 'mat', 'bị mất', 'bi mat' => CuonSach::TINH_TRANG_BI_MAT,
+            default => null,
+        };
+    }
+
+    public function index(Request $request)
+    {
+        $q = DB::table('CUONSACH as cs')
+            ->join('SACH as s', 's.MaSach', '=', 'cs.MaSach')
+            ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
+            ->leftJoin('THELOAI as tl', 'tl.MaTheLoai', '=', 'ds.MaTheLoai')
+            ->leftJoin('CT_TACGIA as ctg', 'ctg.MaDauSach', '=', 'ds.MaDauSach')
+            ->leftJoin('TACGIA as tg', 'tg.MaTacGia', '=', 'ctg.MaTacGia')
+            ->select([
+                'cs.MaCuonSach',
+                'cs.MaSach',
+                'cs.TinhTrang',
+                'ds.TenDauSach',
+                'tl.TenTheLoai',
+                DB::raw('GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia'),
+            ])
+            ->groupBy('cs.MaCuonSach', 'cs.MaSach', 'cs.TinhTrang', 'ds.TenDauSach', 'tl.TenTheLoai')
+            ->orderByDesc('cs.MaCuonSach');
+
+        $search = trim((string)$request->get('search', ''));
+        if ($search !== '') {
+            $q->where(function ($w) use ($search) {
+                $w->where('cs.MaCuonSach', 'like', '%' . $search . '%')
+                    ->orWhere('cs.MaSach', 'like', '%' . $search . '%')
+                    ->orWhere('ds.TenDauSach', 'like', '%' . $search . '%')
+                    ->orWhere('tg.TenTacGia', 'like', '%' . $search . '%');
+            });
+        }
+
+        $tinhTrangText = trim((string)$request->get('tinhtrang', ''));
+        if ($tinhTrangText !== '') {
+            $tinhTrang = $this->mapTinhTrangTextToInt($tinhTrangText);
+            if ($tinhTrang !== null) {
+                $q->where('cs.TinhTrang', '=', $tinhTrang);
+            }
+        }
+
+        $rows = $q->paginate(20)->withQueryString();
+
+        $mapped = collect($rows->items())->map(function ($r) {
+            $r->TinhTrang = $this->mapTinhTrangIntToText(isset($r->TinhTrang) ? (int)$r->TinhTrang : null);
+            return $r;
+        });
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $mapped,
+                'meta' => [
+                    'current_page' => $rows->currentPage(),
+                    'last_page' => $rows->lastPage(),
+                    'per_page' => $rows->perPage(),
+                    'total' => $rows->total(),
+                ],
+            ]);
+        }
+
+        return view('books', ['danhSachSach' => $mapped]);
+    }
+
+    public function updateTinhTrangCuonSach(Request $request, int $maCuonSach)
+    {
+        $request->validate([
+            'TinhTrang' => 'required|string',
+        ]);
+
+        $status = $this->mapTinhTrangTextToInt((string)$request->input('TinhTrang'));
+        if ($status === null) {
+            return back()->with('error', 'Tình trạng không hợp lệ');
+        }
+
+        $exists = DB::table('CUONSACH')->where('MaCuonSach', $maCuonSach)->exists();
+        if (!$exists) {
+            return back()->with('error', 'Không tìm thấy cuốn sách');
+        }
+
+        DB::table('CUONSACH')->where('MaCuonSach', $maCuonSach)->update([
+            'TinhTrang' => $status,
+        ]);
+
+        return back()->with('success', 'Đã cập nhật tình trạng');
+    }
+
     public function store(Request $request)
     {
         $currentYear = (int)date('Y');
@@ -62,10 +127,11 @@ class SachController extends Controller
             'NamXuatBan' => ['required', 'integer', 'min:' . $minPublicationYear, 'max:' . $currentYear],
             'TriGia' => 'required|numeric|min:0|max:999999999.99',
             'SoLuong' => 'required|integer|min:1|max:1000',
+            'NgayNhap' => 'required|date',
         ]);
 
-        $now = Carbon::now();
         $qty = (int)$request->SoLuong;
+        $ngayNhap = Carbon::parse($request->NgayNhap);
 
         DB::beginTransaction();
         try {
@@ -78,10 +144,9 @@ class SachController extends Controller
             ]);
 
             for ($i = 0; $i < $qty; $i++) {
-                CuonSach::create([
+                DB::table('CUONSACH')->insert([
                     'MaSach' => $sach->MaSach,
-                    'NgayNhap' => $now,
-                    'TinhTrang' => CuonSach::TINH_TRANG_CO_SAN,
+                    'NgayNhap' => $ngayNhap->toDateString(),
                 ]);
             }
 

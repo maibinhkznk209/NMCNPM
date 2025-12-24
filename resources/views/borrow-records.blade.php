@@ -1382,7 +1382,7 @@
               <input type="text" id="readerSearchInput" class="search-input" placeholder="Tìm kiếm độc giả..." style="display: none;">
               <div class="dropdown-list" id="readerDropdown" style="display: none;"></div>
             </div>
-            <input type="hidden" id="borrowReader" name="MaDocGia" required>
+            <input type="hidden" id="borrowReader" name="docgia_id" required>
           </div>
           <div class="form-group">
             <label for="borrowBooks">📖 Sách *</label>
@@ -1393,14 +1393,13 @@
               <input type="text" id="booksSearchInput" class="search-input" placeholder="Tìm kiếm sách..." style="display: none;">
               <div class="dropdown-list" id="booksDropdown" style="display: none;"></div>
             </div>
-            <input type="hidden" id="borrowBooks" name="MaSachs" required>
+            <input type="hidden" id="borrowBooks" name="sach_ids" required>
           </div>
         </div>
         
         <div class="form-group">
           <label for="borrowDate">📅 Ngày mượn *</label>
           <input type="date" id="borrowDate" required>
-          <small style="color: #6c757d; margin-top: 5px; display: block;">💡 Ngày hẹn trả sẽ tự động được tính sau {{ $maxBorrowDays }} ngày</small>
         </div>
 
         <div class="modal-actions">
@@ -1772,7 +1771,7 @@
   function showBooksDropdown(searchTerm) {
     const dropdown = document.getElementById('booksDropdown');
     const filteredBooks = allBooks.filter(book => {
-      const matchesSearch = (book.title || book.TenDauSach || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = (book.title || book.TenSach || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           ((book.author || book.tac_gia?.TenTacGia || '') && (book.author || book.tac_gia?.TenTacGia || '').toLowerCase().includes(searchTerm.toLowerCase()));
       return matchesSearch;
     });
@@ -1782,7 +1781,7 @@
     } else {
       dropdown.innerHTML = filteredBooks.map(book => {
         const isSelected = selectedBooks.find(sb => sb.id === book.id);
-        const bookTitle = book.title || book.TenDauSach || 'Không rõ tên sách';
+        const bookTitle = book.title || book.TenSach || 'Không rõ tên sách';
         const bookAuthor = book.author || (book.tac_gia ? book.tac_gia.TenTacGia : '') || 'Chưa có tác giả';
         
         return `
@@ -1856,7 +1855,7 @@
       
       const booksHTML = selectedBooks.map(book => `
         <div class="selected-item">
-          <span>${book.title || book.TenDauSach || 'Không rõ tên sách'}</span>
+          <span>${book.title || book.TenSach || 'Không rõ tên sách'}</span>
           <span class="remove" onclick="removeBook(${book.id})">&times;</span>
         </div>
       `).join('');
@@ -1904,7 +1903,7 @@
       let bookAuthors = 'Chưa có tác giả';
       
       if (record.books && record.books.length > 0) {
-        bookTitles = record.books.map(book => book.TenDauSach || book.title || 'Không rõ tên sách').join(', ');
+        bookTitles = record.books.map(book => book.TenSach || book.title || 'Không rõ tên sách').join(', ');
         bookAuthors = record.books.map(book => {
           if (book.tac_gia && book.tac_gia.TenTacGia) {
             return book.tac_gia.TenTacGia;
@@ -2036,7 +2035,7 @@
       let bookAuthors = '';
       
       if (record.books && record.books.length > 0) {
-        bookTitles = record.books.map(book => book.TenDauSach || book.title || '').join(' ');
+        bookTitles = record.books.map(book => book.TenSach || book.title || '').join(' ');
         bookAuthors = record.books.map(book => {
           if (book.tac_gia && book.tac_gia.TenTacGia) {
             return book.tac_gia.TenTacGia;
@@ -2126,8 +2125,8 @@
     let readerId = null;
     if (record.reader && record.reader.id) {
       readerId = record.reader.id;
-        } else if (record.MaDocGia) {
-          readerId = record.MaDocGia; // fallback to old structure
+        } else if (record.docgia_id) {
+          readerId = record.docgia_id; // fallback to old structure
     }
     
     if (readerId) {
@@ -2341,7 +2340,7 @@
       </div>
       <div class="detail-info-row">
         <span class="detail-info-label">👤 Họ tên độc giả:</span>
-        <span class="detail-info-value">${borrowDetail.doc_gia ? borrowDetail.doc_gia.TenDocGia : 'N/A'}</span>
+        <span class="detail-info-value">${borrowDetail.doc_gia ? borrowDetail.doc_gia.HoTen : 'N/A'}</span>
       </div>
       <div class="detail-info-row">
         <span class="detail-info-label">📅 Ngày trả:</span>
@@ -2391,7 +2390,7 @@
             <tr>
               <td style="text-align: center; font-weight: 600; color: #667eea;">${index + 1}</td>
               <td colspan="6" style="text-align: center; color: #e53e3e;">
-                ⚠️ Sách ID ${chiTiet.MaSach} không tìm thấy
+                ⚠️ Sách ID ${chiTiet.sach_id} không tìm thấy
               </td>
             </tr>
           `;
@@ -2456,7 +2455,7 @@
       </div>
       <div class="detail-info-row">
         <span class="detail-info-label">👤 Độc giả:</span>
-        <span class="detail-info-value">${borrowDetail.doc_gia ? borrowDetail.doc_gia.TenDocGia : 'N/A'} ${borrowDetail.doc_gia && borrowDetail.doc_gia.Email ? `(${borrowDetail.doc_gia.Email})` : ''}</span>
+        <span class="detail-info-value">${borrowDetail.doc_gia ? borrowDetail.doc_gia.HoTen : 'N/A'} ${borrowDetail.doc_gia && borrowDetail.doc_gia.Email ? `(${borrowDetail.doc_gia.Email})` : ''}</span>
       </div>
       <div class="detail-info-row">
         <span class="detail-info-label">📅 Ngày mượn:</span>
@@ -2507,14 +2506,14 @@
             <tr>
               <td style="text-align: center; font-weight: 600; color: #667eea;">${index + 1}</td>
               <td colspan="5" style="text-align: center; color: #e53e3e;">
-                ⚠️ Sách ID ${chiTiet.MaSach} không tìm thấy
+                ⚠️ Sách ID ${chiTiet.sach_id} không tìm thấy
               </td>
             </tr>
           `;
         }
         
         const bookCode = book.MaSach || 'N/A';
-        const bookTitle = book.TenDauSach || 'Không rõ tên sách';
+        const bookTitle = book.TenSach || 'Không rõ tên sách';
         
         // Handle multiple genres
         let bookGenre = 'Chưa phân loại';
@@ -2590,7 +2589,7 @@
       // Fallback to old structure
       const firstChiTiet = record.chi_tiet_phieu_muon[0];
       if (firstChiTiet.sach) {
-        const bookTitle = firstChiTiet.sach.TenDauSach || 'Không rõ tên sách';
+        const bookTitle = firstChiTiet.sach.TenSach || 'Không rõ tên sách';
         const bookCode = firstChiTiet.sach.MaSach || firstChiTiet.sach.id || 'N/A';
         bookInfo = `${bookCode} - ${bookTitle}`;
       }
@@ -2726,8 +2725,8 @@
     
     try {
       const formData = {
-        MaDocGia: selectedReader.id,
-        MaSachs: selectedBooks.map(book => book.id),
+        docgia_id: selectedReader.id,
+        sach_ids: selectedBooks.map(book => book.id),
         borrow_date: borrowDate
       };
       
@@ -2849,14 +2848,14 @@
           <tr>
             <td style="text-align: center; font-weight: 600; color: #667eea;">${index + 1}</td>
             <td colspan="5" style="text-align: center; color: #e53e3e;">
-              ⚠️ Sách ID ${chiTiet.MaSach} không tìm thấy
+              ⚠️ Sách ID ${chiTiet.sach_id} không tìm thấy
             </td>
           </tr>
         `;
       }
       
       const bookCode = book.MaSach || 'N/A';
-      const bookTitle = book.TenDauSach || 'Không rõ tên sách';
+      const bookTitle = book.TenSach || 'Không rõ tên sách';
       const bookValue = book.TriGia || 0;
       
       return `
@@ -2915,7 +2914,7 @@
       }
 
       const formData = {
-        MaSachs: sachIds,
+        sach_ids: sachIds,
         book_statuses: bookStatuses
       };
 
@@ -2955,7 +2954,7 @@
 
     // Update fine details for each book
     data.book_details.forEach(bookDetail => {
-      const fineDetailsElement = document.getElementById(`fine-details-${bookDetail.MaSach}`);
+      const fineDetailsElement = document.getElementById(`fine-details-${bookDetail.sach_id}`);
       if (fineDetailsElement) {
         fineDetailsElement.innerHTML = `
           <div style="margin-bottom: 5px;">
@@ -2984,9 +2983,9 @@
 
     try {
       const formData = {
-        MaSachs: returnBooksData.book_details.map(book => book.MaSach),
+        sach_ids: returnBooksData.book_details.map(book => book.sach_id),
         book_statuses: returnBooksData.book_details.reduce((acc, book) => {
-          acc[book.MaSach] = book.tinh_trang_moi;
+          acc[book.sach_id] = book.tinh_trang_moi;
           return acc;
         }, {})
       };
