@@ -33,7 +33,7 @@ class LoaiDocGiaController extends Controller
         
         // Add reader count for each type
         foreach ($loaiDocGias as $loai) {
-            $loai->readers_count = \App\Models\DocGia::where('loaidocgia_id', $loai->id)->count();
+            $loai->readers_count = \App\Models\DocGia::where('MaLoaiDocGia', $loai->MaLoaiDocGia)->count();
         }
         
         // Get total doc gia count for stats

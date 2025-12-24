@@ -7,23 +7,13 @@ use Tests\TestCase;
 use App\Models\TheLoai;
 use App\Models\TaiKhoan;
 use App\Models\VaiTro;
-use App\Models\Sach;
+use App\Models\DauSach;
 
 class TheLoaiControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        
-        // Force sử dụng SQLite in-memory cho test
-        config(['database.default' => 'sqlite']);
-        config(['database.connections.sqlite.database' => ':memory:']);
-    }
-
-    /** @test */
-    public function can_create_genre()
+    public function test_can_create_genre()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
@@ -34,18 +24,17 @@ class TheLoaiControllerTest extends TestCase
         ]);
 
         $response->assertStatus(201)
-                ->assertJson([
-                    'success' => true,
-                    'message' => 'Thêm thể loại thành công'
-                ]);
+            ->assertJson([
+                'success' => true,
+                'message' => 'Thêm thể loại thành công'
+            ]);
 
         $this->assertDatabaseHas('THELOAI', [
             'TenTheLoai' => 'Tiểu thuyết',
         ]);
     }
 
-    /** @test */
-    public function cannot_create_genre_with_missing_name()
+    public function test_cannot_create_genre_with_missing_name()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
@@ -56,34 +45,30 @@ class TheLoaiControllerTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-                ->assertJson([
-                    'success' => false,
-                ]);
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 
-    /** @test */
-    public function cannot_create_duplicate_genre()
+    public function test_cannot_create_duplicate_genre()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
-        // Tạo thể loại đầu tiên
         TheLoai::factory()->create(['TenTheLoai' => 'Tiểu thuyết']);
 
-        // Thử tạo thể loại trùng tên
         $response = $this->postJson('/theloai', [
             'TenTheLoai' => 'Tiểu thuyết',
         ]);
 
         $response->assertStatus(422)
-                ->assertJson([
-                    'success' => false,
-                ]);
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 
-    /** @test */
-    public function can_update_genre()
+    public function test_can_update_genre()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
@@ -91,24 +76,23 @@ class TheLoaiControllerTest extends TestCase
 
         $theLoai = TheLoai::factory()->create(['TenTheLoai' => 'Tiểu thuyết']);
 
-        $response = $this->putJson("/theloai/{$theLoai->id}", [
+        $response = $this->putJson("/theloai/{$theLoai->MaTheLoai}", [
             'TenTheLoai' => 'Tiểu thuyết mới',
         ]);
 
         $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'message' => 'Cập nhật thể loại thành công'
-                ]);
+            ->assertJson([
+                'success' => true,
+                'message' => 'Cập nhật thể loại thành công'
+            ]);
 
         $this->assertDatabaseHas('THELOAI', [
-            'id' => $theLoai->id,
+            'MaTheLoai' => $theLoai->MaTheLoai,
             'TenTheLoai' => 'Tiểu thuyết mới',
         ]);
     }
 
-    /** @test */
-    public function cannot_update_genre_with_missing_name()
+    public function test_cannot_update_genre_with_missing_name()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
@@ -116,38 +100,36 @@ class TheLoaiControllerTest extends TestCase
 
         $theLoai = TheLoai::factory()->create(['TenTheLoai' => 'Tiểu thuyết']);
 
-        $response = $this->putJson("/theloai/{$theLoai->id}", [
+        $response = $this->putJson("/theloai/{$theLoai->MaTheLoai}", [
             'TenTheLoai' => '',
         ]);
 
         $response->assertStatus(422)
-                ->assertJson([
-                    'success' => false,
-                ]);
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 
-    /** @test */
-    public function cannot_update_genre_to_duplicate_name()
+    public function test_cannot_update_genre_to_duplicate_name()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
         $theLoai1 = TheLoai::factory()->create(['TenTheLoai' => 'Tiểu thuyết']);
-        $theLoai2 = TheLoai::factory()->create(['TenTheLoai' => 'Truyện ngắn']);
+        TheLoai::factory()->create(['TenTheLoai' => 'Truyện ngắn']);
 
-        $response = $this->putJson("/theloai/{$theLoai1->id}", [
+        $response = $this->putJson("/theloai/{$theLoai1->MaTheLoai}", [
             'TenTheLoai' => 'Truyện ngắn',
         ]);
 
         $response->assertStatus(422)
-                ->assertJson([
-                    'success' => false,
-                ]);
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 
-    /** @test */
-    public function can_delete_genre_without_books()
+    public function test_can_delete_genre_without_books()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
@@ -155,45 +137,45 @@ class TheLoaiControllerTest extends TestCase
 
         $theLoai = TheLoai::factory()->create(['TenTheLoai' => 'Tiểu thuyết']);
 
-        $response = $this->deleteJson("/theloai/{$theLoai->id}");
+        $response = $this->deleteJson("/theloai/{$theLoai->MaTheLoai}");
 
         $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'message' => 'Xóa thể loại thành công'
-                ]);
+            ->assertJson([
+                'success' => true,
+                'message' => 'Xóa thể loại thành công'
+            ]);
 
         $this->assertDatabaseMissing('THELOAI', [
-            'id' => $theLoai->id,
+            'MaTheLoai' => $theLoai->MaTheLoai,
         ]);
     }
 
-    /** @test */
-    public function cannot_delete_genre_with_books()
+    public function test_cannot_delete_genre_with_books()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
         $theLoai = TheLoai::factory()->create(['TenTheLoai' => 'Tiểu thuyết']);
-        $sach = Sach::factory()->create();
-        $sach->theLoais()->attach($theLoai->id);
 
-        $response = $this->deleteJson("/theloai/{$theLoai->id}");
+        DauSach::factory()->create([
+            'MaTheLoai' => $theLoai->MaTheLoai,
+        ]);
+
+        $response = $this->deleteJson("/theloai/{$theLoai->MaTheLoai}");
 
         $response->assertStatus(400)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Không thể xóa thể loại này vì đang có sách thuộc thể loại này'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Không thể xóa thể loại này vì đang có đầu sách thuộc thể loại này'
+            ]);
 
         $this->assertDatabaseHas('THELOAI', [
-            'id' => $theLoai->id,
+            'MaTheLoai' => $theLoai->MaTheLoai,
         ]);
     }
 
-    /** @test */
-    public function can_show_genres_page()
+    public function test_can_show_genres_page()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);

@@ -9,9 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('DOCGIA', function (Blueprint $table) {
-            $table->string('MaDocGia')->unique();
-            $table->string('HoTen');
-            $table->foreignId('MaLoaiDocGia')->constrained('LOAIDOCGIA');
+            $table->string('MaDocGia')->primary();
+            $table->string('MaLoaiDocGia', 20);
+            $table->foreign('MaLoaiDocGia')
+                ->references('MaLoaiDocGia')
+                ->on('LOAIDOCGIA')
+                ->cascadeOnDelete();
+            $table->string('TenDocGia');
             $table->date('NgaySinh');
             $table->string('DiaChi');
             $table->string('Email')->unique();

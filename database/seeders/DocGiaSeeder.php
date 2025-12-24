@@ -20,8 +20,8 @@ class DocGiaSeeder extends Seeder
 
         $docGias = [
             [
-                'HoTen' => 'Nguyễn Văn An',
-                'loaidocgia_id' => $loaiDocGias->where('TenLoaiDocGia', 'Sinh viên')->first()->id,
+                'TenDocGia' => 'Nguyễn Văn An',
+                'MaLoaiDocGia' => $loaiDocGias->where('TenLoaiDocGia', 'Sinh viên')->first()->MaLoaiDocGia,
                 'NgaySinh' => '2000-05-15',
                 'DiaChi' => '123 Đường ABC, Quận 1, TP.HCM',
                 'Email' => 'nguyenvanan@email.com',
@@ -30,8 +30,8 @@ class DocGiaSeeder extends Seeder
                 'TongNo' => 0.00
             ],
             [
-                'HoTen' => 'Trần Thị Bình',
-                'loaidocgia_id' => $loaiDocGias->where('TenLoaiDocGia', 'Giảng viên')->first()->id,
+                'TenDocGia' => 'Trần Thị Bình',
+                'MaLoaiDocGia' => $loaiDocGias->where('TenLoaiDocGia', 'Giảng viên')->first()->MaLoaiDocGia,
                 'NgaySinh' => '1985-03-20',
                 'DiaChi' => '456 Đường XYZ, Quận 3, TP.HCM',
                 'Email' => 'tranthibinh@email.com',
@@ -40,8 +40,8 @@ class DocGiaSeeder extends Seeder
                 'TongNo' => 25000.00  // Có nợ 25k
             ],
             [
-                'HoTen' => 'Lê Minh Cường',
-                'loaidocgia_id' => $loaiDocGias->where('TenLoaiDocGia', 'Sinh viên')->first()->id,
+                'TenDocGia' => 'Lê Minh Cường',
+                'MaLoaiDocGia' => $loaiDocGias->where('TenLoaiDocGia', 'Sinh viên')->first()->MaLoaiDocGia,
                 'NgaySinh' => '1999-12-10',
                 'DiaChi' => '789 Đường DEF, Quận 7, TP.HCM',
                 'Email' => 'leminhcuong@email.com',
@@ -50,8 +50,8 @@ class DocGiaSeeder extends Seeder
                 'TongNo' => 0.00
             ],
             [
-                'HoTen' => 'Phạm Thị Dung',
-                'loaidocgia_id' => $loaiDocGias->where('TenLoaiDocGia', 'Cán bộ nhân viên')->first()->id,
+                'TenDocGia' => 'Phạm Thị Dung',
+                'MaLoaiDocGia' => $loaiDocGias->where('TenLoaiDocGia', 'Cán bộ nhân viên')->first()->MaLoaiDocGia,
                 'NgaySinh' => '1990-08-25',
                 'DiaChi' => '321 Đường GHI, Quận 5, TP.HCM',
                 'Email' => 'phamthidung@email.com',
@@ -60,8 +60,8 @@ class DocGiaSeeder extends Seeder
                 'TongNo' => 50000.00  // Có nợ 50k
             ],
             [
-                'HoTen' => 'Hoàng Văn Em',
-                'loaidocgia_id' => $loaiDocGias->where('TenLoaiDocGia', 'Độc giả bên ngoài')->first()->id,
+                'TenDocGia' => 'Hoàng Văn Em',
+                'MaLoaiDocGia' => $loaiDocGias->where('TenLoaiDocGia', 'Độc giả bên ngoài')->first()->MaLoaiDocGia,
                 'NgaySinh' => '1995-11-05',
                 'DiaChi' => '654 Đường JKL, Quận 2, TP.HCM',
                 'Email' => 'hoangvanem@email.com',
@@ -70,8 +70,8 @@ class DocGiaSeeder extends Seeder
                 'TongNo' => 0.00
             ],
             [
-                'HoTen' => 'Vũ Thị An',
-                'loaidocgia_id' => $loaiDocGias->where('TenLoaiDocGia', 'Nghiên cứu sinh')->first()->id,
+                'TenDocGia' => 'Vũ Thị An',
+                'MaLoaiDocGia' => $loaiDocGias->where('TenLoaiDocGia', 'Nghiên cứu sinh')->first()->MaLoaiDocGia,
                 'NgaySinh' => '1992-04-18',
                 'DiaChi' => '987 Đường MNO, Quận 4, TP.HCM',
                 'Email' => 'vuthifan@email.com',
@@ -80,8 +80,8 @@ class DocGiaSeeder extends Seeder
                 'TongNo' => 15000.00  // Có nợ 15k
             ],
             [
-                'HoTen' => 'Đặng Minh Giang',
-                'loaidocgia_id' => $loaiDocGias->where('TenLoaiDocGia', 'Học sinh')->first()->id,
+                'TenDocGia' => 'Đặng Minh Giang',
+                'MaLoaiDocGia' => $loaiDocGias->where('TenLoaiDocGia', 'Học sinh')->first()->MaLoaiDocGia,
                 'NgaySinh' => '2005-09-12',
                 'DiaChi' => '159 Đường PQR, Quận 6, TP.HCM',
                 'Email' => 'dangminhgiang@email.com',
@@ -89,8 +89,8 @@ class DocGiaSeeder extends Seeder
                 'NgayHetHan' => '2025-05-15'
             ],
             [
-                'HoTen' => 'Bùi Thị Hạnh',
-                'loaidocgia_id' => $loaiDocGias->where('TenLoaiDocGia', 'Sinh viên')->first()->id,
+                'TenDocGia' => 'Bùi Thị Hạnh',
+                'MaLoaiDocGia' => $loaiDocGias->where('TenLoaiDocGia', 'Sinh viên')->first()->MaLoaiDocGia,
                 'NgaySinh' => '2001-07-30',
                 'DiaChi' => '753 Đường STU, Quận 8, TP.HCM',
                 'Email' => 'buithihanh@email.com',

@@ -2,22 +2,20 @@
 
 namespace Database\Factories;
 
+use App\Models\NhaXuatBan;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\NhaXuatBan>
+ * @extends Factory<NhaXuatBan>
  */
 class NhaXuatBanFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = NhaXuatBan::class;
+
     public function definition(): array
     {
         return [
-            'TenNXB' => $this->faker->company,
+            'TenNXB' => $this->faker->company(),
         ];
     }
 }

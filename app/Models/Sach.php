@@ -4,26 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\NhaXuatBan;
-use App\Models\CT_PhieuMuon;
-use App\Models\CuonSach;
-
-use App\Models\DauSach;
 
 class Sach extends Model
 {
     use HasFactory;
+
     protected $table = 'SACH';
     protected $primaryKey = 'MaSach';
     public $incrementing = true;
     protected $keyType = 'int';
-    
+    public $timestamps = false;
+
     protected $fillable = [
         'MaDauSach',
         'MaNXB',
         'NamXuatBan',
         'TriGia',
-        'SoLuong'
+        'SoLuong',
     ];
 
     protected $casts = [
@@ -31,26 +28,46 @@ class Sach extends Model
         'TriGia' => 'decimal:2',
     ];
 
-    public $timestamps = false;
+    /**
+     * Compatibility aliases:
+     * Một số controller/view/test gọi các tên này.
+     */
+    public function dauSach()
+    {
+        return $this->S_DS();
+    }
 
+    public function nhaXuatBan()
+    {
+        return $this->S_NXB();
+    }
 
+    public function cuonSachs()
+    {
+        return $this->S_CS();
+    }
 
-    // Quan hệ one-to-many với NhaXuatBan (mỗi sách có 1 nhà xuất bản)
+    // Quan hệ với NXB
     public function S_NXB()
     {
         return $this->belongsTo(NhaXuatBan::class, 'MaNXB', 'MaNXB');
     }
+
+    // 1 SACH có nhiều CUONSACH
     public function S_CS()
     {
         return $this->hasMany(CuonSach::class, 'MaSach', 'MaSach');
     }
+
+    // Chi tiết phiếu mượn theo sách
     public function S_PM()
     {
-    return $this->hasMany(
-        CT_PhieuMuon::class,
-        'MaSach',
-        'MaSach'
-    );
+        return $this->hasMany(CT_PhieuMuon::class, 'MaSach', 'MaSach');
+    }
+
+    // Thuộc DAUSACH
+    public function S_DS()
+    {
+        return $this->belongsTo(DauSach::class, 'MaDauSach', 'MaDauSach');
     }
 }
- 

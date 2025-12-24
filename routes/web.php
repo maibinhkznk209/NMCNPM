@@ -13,7 +13,7 @@ use App\Http\Controllers\NhaXuatBanController;
 use App\Http\Controllers\DocGiaController;
 use App\Http\Controllers\LoaiDocGiaController;
 use App\Http\Controllers\PhieuMuonController;
-use App\Http\Controllers\PhieuThuTienPhatController;
+use App\Http\Controllers\PhieuPhatController;
 use App\Http\Controllers\QuyDinhController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TaiKhoanController;
@@ -38,9 +38,12 @@ Route::middleware(['role:Thủ thư,Admin'])->group(function () {
     Route::delete('borrow-records/{id}', [PhieuMuonController::class, 'destroy'])->name('borrow-records.destroy');
         
     // Fine Payments routes (chỉ index, store, destroy - không có update)
-    Route::get('fine-payments', [PhieuThuTienPhatController::class, 'index'])->name('fine-payments.index');
-    Route::post('fine-payments', [PhieuThuTienPhatController::class, 'store'])->name('fine-payments.store');
-    Route::delete('fine-payments/{phieuThuTienPhat}', [PhieuThuTienPhatController::class, 'destroy'])->name('fine-payments.destroy');
+    Route::get('fine-payments', [PhieuPhatController::class, 'index'])->name('fine-payments.index');
+    Route::post('fine-payments', [PhieuPhatController::class, 'store'])->name('fine-payments.store');
+    Route::delete('fine-payments/{PhieuPhat}', [PhieuPhatController::class, 'destroy'])->name('fine-payments.destroy');
+    Route::post('/books/cuon-sach/{maCuonSach}/tinh-trang', [SachController::class, 'updateTinhTrangCuonSach'])
+        ->name('books.cuon_sach.update_tinh_trang');
+
 });
 
 // Routes chỉ cho Admin
@@ -88,11 +91,11 @@ Route::middleware(['role:Thủ thư,Admin'])->group(function () {
     Route::get('/api/overdue-borrow-records', [PhieuMuonController::class, 'apiIndex'])->name('api.overdue-borrow-records');
 
     // API routes for Fine Payments
-    Route::get('/api/fine-payments', [PhieuThuTienPhatController::class, 'index'])->name('api.fine-payments.index');
-    Route::post('/api/fine-payments', [PhieuThuTienPhatController::class, 'store'])->name('api.fine-payments.store');
-    Route::get('/api/fine-payments/{phieuThuTienPhat}', [PhieuThuTienPhatController::class, 'show'])->name('api.fine-payments.show');
-    Route::delete('/api/fine-payments/{phieuThuTienPhat}', [PhieuThuTienPhatController::class, 'destroy'])->name('api.fine-payments.destroy');
-    Route::get('/api/fine-payments/reader-debt/{docgia_id}', [PhieuThuTienPhatController::class, 'getReaderDebt'])->name('api.fine-payments.reader-debt');
+    Route::get('/api/fine-payments', [PhieuPhatController::class, 'index'])->name('api.fine-payments.index');
+    Route::post('/api/fine-payments', [PhieuPhatController::class, 'store'])->name('api.fine-payments.store');
+    Route::get('/api/fine-payments/{PhieuPhat}', [PhieuPhatController::class, 'show'])->name('api.fine-payments.show');
+    Route::delete('/api/fine-payments/{PhieuPhat}', [PhieuPhatController::class, 'destroy'])->name('api.fine-payments.destroy');
+    Route::get('/api/fine-payments/reader-debt/{MaDocGia}', [PhieuPhatController::class, 'getReaderDebt'])->name('api.fine-payments.reader-debt');
 });
 
 // API routes for Regulations (chỉ Admin)

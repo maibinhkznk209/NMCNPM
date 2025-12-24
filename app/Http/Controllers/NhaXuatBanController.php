@@ -79,7 +79,7 @@ class NhaXuatBanController extends Controller
         }
 
         $request->validate([
-            'TenNXB' => 'required|string|max:255|unique:NHAXUATBAN,TenNXB,' . $id,
+            'TenNXB' => 'required|string|max:255|unique:NHAXUATBAN,TenNXB,' . $id . ',MaNXB',
         ], [
             'TenNXB.required' => 'Tên nhà xuất bản là bắt buộc',
             'TenNXB.unique' => 'Tên nhà xuất bản đã tồn tại',
@@ -120,7 +120,7 @@ class NhaXuatBanController extends Controller
         }
 
         try {
-            $sachCount = $nhaXuatBan->sachs()->count();
+            $sachCount = $nhaXuatBan->NXB_S()->count();
             if ($sachCount > 0) {
                 return response()->json([
                     'success' => false,

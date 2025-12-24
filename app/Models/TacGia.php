@@ -10,7 +10,7 @@ class TacGia extends Model
 {
     use HasFactory;
     protected $table = 'TACGIA';
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'MaTacGia';
     public $incrementing = true;
     protected $keyType = 'int';
     

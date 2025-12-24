@@ -2,29 +2,48 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PhieuThuTienPhat;
+use App\Models\PhieuPhat;
 use App\Models\DocGia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class PhieuThuTienPhatController extends Controller
+class PhieuPhatController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        try {
-            $phieuThus = PhieuThuTienPhat::with('docGia')->orderBy('id', 'desc')->get();
-            $docGias = DocGia::orderBy('HoTen')->get();
-            
-            return view('fine-payments', compact('phieuThus', 'docGias'));
-        } catch (\Exception $e) {
-            Log::error('Error in PhieuThuTienPhatController@index: ' . $e->getMessage());
-            return back()->with('error', 'Có lỗi xảy ra khi tải dữ liệu.');
+    public function index(Request $request)
+{
+    try {
+        $phieuThus = PhieuPhat::with('docGia')->orderBy('NgayThu', 'desc')->get();
+
+        // IMPORTANT: API path must always return JSON
+        if ($request->is('api/*') || $request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $phieuThus,
+            ], 200);
         }
+
+        // Web view
+        $docGias = DocGia::orderBy('TenDocGia')->get();
+        return view('fine-payments', compact('phieuThus', 'docGias'));
+
+    } catch (\Exception $e) {
+        Log::error('Error in PhieuPhatController@index: ' . $e->getMessage());
+
+        if ($request->is('api/*') || $request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi tải dữ liệu.'
+            ], 500);
+        }
+
+        return back()->with('error', 'Có lỗi xảy ra khi tải dữ liệu.');
     }
+}
+
 
     /**
      * Store a newly created resource in storage.
@@ -33,18 +52,18 @@ class PhieuThuTienPhatController extends Controller
     {
         try {
             $request->validate([
-                'docgia_id' => 'required|exists:DOCGIA,id',
+                'MaDocGia' => 'required|exists:DOCGIA,MaDocGia',
                 'SoTienNop' => 'required|numeric|min:0',
             ], [
-                'docgia_id.required' => 'Vui lòng chọn độc giả',
-                'docgia_id.exists' => 'Độc giả không tồn tại',
+                'MaDocGia.required' => 'Vui lòng chọn độc giả',
+                'MaDocGia.exists' => 'Độc giả không tồn tại',
                 'SoTienNop.required' => 'Vui lòng nhập số tiền nộp',
                 'SoTienNop.numeric' => 'Số tiền nộp phải là số',
                 'SoTienNop.min' => 'Số tiền nộp phải lớn hơn 0',
             ]);
 
             // Lấy thông tin độc giả
-            $docGia = DocGia::findOrFail($request->docgia_id);
+            $docGia = DocGia::findOrFail($request->MaDocGia);
             
             // Kiểm tra số tiền nộp không vượt quá tổng nợ
             if ($request->SoTienNop > $docGia->TongNo) {
@@ -57,9 +76,9 @@ class PhieuThuTienPhatController extends Controller
             DB::beginTransaction();
 
             // Tạo phiếu thu tiền phạt
-            $phieuThu = PhieuThuTienPhat::create([
-                'MaPhieu' => PhieuThuTienPhat::generateMaPhieu(),
-                'docgia_id' => $request->docgia_id,
+            $phieuThu = PhieuPhat::create([
+                'MaPhieuPhat' => PhieuPhat::generateMaPhieuPhat(),
+                'MaDocGia' => $request->MaDocGia,
                 'SoTienNop' => $request->SoTienNop,
                 'NgayThu' => now()->toDateString(),
             ]);
@@ -70,7 +89,7 @@ class PhieuThuTienPhatController extends Controller
 
             DB::commit();
 
-            $phieuThu->load('docGia');
+            $phieuThu->load('PP_DG');
 
             return response()->json([
                 'success' => true,
@@ -86,7 +105,7 @@ class PhieuThuTienPhatController extends Controller
             ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error in PhieuThuTienPhatController@store: ' . $e->getMessage());
+            Log::error('Error in PhieuPhatController@store: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi tạo phiếu thu: ' . $e->getMessage()
@@ -97,16 +116,16 @@ class PhieuThuTienPhatController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(PhieuThuTienPhat $phieuThuTienPhat)
+    public function show(PhieuPhat $PhieuPhat)
     {
         try {
-            $phieuThuTienPhat->load('docGia');
+            $PhieuPhat->load('PP_DG');
             return response()->json([
                 'success' => true,
-                'data' => $phieuThuTienPhat
+                'data' => $PhieuPhat
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in PhieuThuTienPhatController@show: ' . $e->getMessage());
+            Log::error('Error in PhieuPhatController@show: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi tải dữ liệu.'
@@ -117,18 +136,18 @@ class PhieuThuTienPhatController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(PhieuThuTienPhat $phieuThuTienPhat)
+    public function destroy(PhieuPhat $PhieuPhat)
     {
         try {
             DB::beginTransaction();
 
             // Hoàn lại số tiền cho độc giả
-            $docGia = DocGia::findOrFail($phieuThuTienPhat->docgia_id);
-            $docGia->TongNo += $phieuThuTienPhat->SoTienNop;
+            $docGia = DocGia::findOrFail($PhieuPhat->MaDocGia);
+            $docGia->TongNo += $PhieuPhat->SoTienNop;
             $docGia->save();
 
             // Xóa phiếu thu
-            $phieuThuTienPhat->delete();
+            $PhieuPhat->delete();
 
             DB::commit();
 
@@ -139,7 +158,7 @@ class PhieuThuTienPhatController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error in PhieuThuTienPhatController@destroy: ' . $e->getMessage());
+            Log::error('Error in PhieuPhatController@destroy: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi xóa phiếu thu: ' . $e->getMessage()
@@ -150,10 +169,10 @@ class PhieuThuTienPhatController extends Controller
     /**
      * Get reader debt information
      */
-    public function getReaderDebt($docgia_id)
+    public function getReaderDebt($MaDocGia)
     {
         try {
-            $docGia = DocGia::findOrFail($docgia_id);
+            $docGia = DocGia::findOrFail($MaDocGia);
             
             return response()->json([
                 'success' => true,
@@ -163,7 +182,7 @@ class PhieuThuTienPhatController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in PhieuThuTienPhatController@getReaderDebt: ' . $e->getMessage());
+            Log::error('Error in PhieuPhatController@getReaderDebt: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi lấy thông tin nợ.'

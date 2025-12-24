@@ -14,8 +14,8 @@ class PhieuMuonFactory extends Factory
     public function definition()
     {
         return [
-            'MaPhieu' => PhieuMuon::generateMaPhieu(),
-            'docgia_id' => DocGia::factory(),
+            'MaPhieuMuon' => PhieuMuon::generateMaPhieu(),
+            'MaDocGia' => DocGia::factory(),
             'NgayMuon' => $this->faker->dateTimeBetween('-30 days', 'now'),
             'NgayHenTra' => function (array $attributes) {
                 return Carbon::parse($attributes['NgayMuon'])->addDays(14);

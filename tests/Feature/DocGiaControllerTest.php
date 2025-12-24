@@ -16,16 +16,14 @@ class DocGiaControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['database.default' => 'sqlite']);
-        config(['database.connections.sqlite.database' => ':memory:']);
     }
 
     private function validData($overrides = [])
     {
         $loai = LoaiDocGia::factory()->create();
         return array_merge([
-            'HoTen' => 'Nguyễn Văn A',
-            'loaidocgia_id' => $loai->id,
+            'TenDocGia' => 'Nguyễn Văn A',
+            'MaLoaiDocGia' => $loai->MaLoaiDocGia,
             'NgaySinh' => '2000-01-01',
             'DiaChi' => 'Hà Nội',
             'Email' => 'vana@example.com',
@@ -51,7 +49,7 @@ class DocGiaControllerTest extends TestCase
                 'message' => 'Thêm độc giả thành công'
             ]);
         $this->assertDatabaseHas('DOCGIA', [
-            'HoTen' => $data['HoTen'],
+            'TenDocGia' => $data['TenDocGia'],
             'Email' => $data['Email'],
         ]);
     }
@@ -63,7 +61,7 @@ class DocGiaControllerTest extends TestCase
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
-        $data = $this->validData(['HoTen' => '']);
+        $data = $this->validData(['TenDocGia' => '']);
         $response = $this->postJson('/api/docgia', $data);
         $response->assertStatus(422)
             ->assertJsonFragment(['message' => 'Họ tên là bắt buộc']);
@@ -131,16 +129,16 @@ class DocGiaControllerTest extends TestCase
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
         $loai = LoaiDocGia::factory()->create();
-        $docGia = DocGia::factory()->create(['loaidocgia_id' => $loai->id]);
-        $data = $this->validData(['Email' => 'newemail@example.com', 'loaidocgia_id' => $loai->id]);
-        $response = $this->putJson("/api/docgia/{$docGia->id}", $data);
+        $docGia = DocGia::factory()->create(['MaLoaiDocGia' => $loai->MaLoaiDocGia]);
+        $data = $this->validData(['Email' => 'newemail@example.com', 'MaLoaiDocGia' => $loai->MaLoaiDocGia]);
+        $response = $this->putJson("/api/docgia/{$docGia->MaDocGia}", $data);
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
                 'message' => 'Cập nhật độc giả thành công'
             ]);
         $this->assertDatabaseHas('DOCGIA', [
-            'id' => $docGia->id,
+            'MaDocGia' => $docGia->MaDocGia,
             'Email' => 'newemail@example.com',
         ]);
     }
@@ -153,9 +151,9 @@ class DocGiaControllerTest extends TestCase
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
         $loai = LoaiDocGia::factory()->create();
-        $docGia = DocGia::factory()->create(['loaidocgia_id' => $loai->id]);
-        $data = $this->validData(['Email' => 'not-an-email', 'loaidocgia_id' => $loai->id]);
-        $response = $this->putJson("/api/docgia/{$docGia->id}", $data);
+        $docGia = DocGia::factory()->create(['MaLoaiDocGia' => $loai->MaLoaiDocGia]);
+        $data = $this->validData(['Email' => 'not-an-email', 'MaLoaiDocGia' => $loai->MaLoaiDocGia]);
+        $response = $this->putJson("/api/docgia/{$docGia->MaDocGia}", $data);
         $response->assertStatus(422)
             ->assertJsonFragment(['message' => 'Email không hợp lệ']);
     }
@@ -168,13 +166,13 @@ class DocGiaControllerTest extends TestCase
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
         $loai = LoaiDocGia::factory()->create();
-        $docGia = DocGia::factory()->create(['loaidocgia_id' => $loai->id]);
+        $docGia = DocGia::factory()->create(['MaLoaiDocGia' => $loai->MaLoaiDocGia]);
         $data = $this->validData([
             'NgayLapThe' => '2024-01-01',
             'NgayHetHan' => '2023-12-31',
-            'loaidocgia_id' => $loai->id
+            'MaLoaiDocGia' => $loai->MaLoaiDocGia
         ]);
-        $response = $this->putJson("/api/docgia/{$docGia->id}", $data);
+        $response = $this->putJson("/api/docgia/{$docGia->MaDocGia}", $data);
         $response->assertStatus(422)
             ->assertJsonFragment(['message' => 'Ngày hết hạn phải sau ngày lập thẻ']);
     }
@@ -200,15 +198,15 @@ class DocGiaControllerTest extends TestCase
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
         $loai = LoaiDocGia::factory()->create();
-        $docGia = DocGia::factory()->create(['loaidocgia_id' => $loai->id]);
-        $response = $this->deleteJson("/api/docgia/{$docGia->id}");
+        $docGia = DocGia::factory()->create(['MaLoaiDocGia' => $loai->MaLoaiDocGia]);
+        $response = $this->deleteJson("/api/docgia/{$docGia->MaDocGia}");
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
                 'message' => 'Xóa độc giả thành công'
             ]);
         $this->assertDatabaseMissing('DOCGIA', [
-            'id' => $docGia->id,
+            'MaDocGia' => $docGia->MaDocGia,
         ]);
     }
 

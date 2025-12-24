@@ -9,19 +9,25 @@ use App\Models\DauSach;
 class TheLoai extends Model
 {
     use HasFactory;
+
     protected $table = 'THELOAI';
     protected $primaryKey = 'MaTheLoai';
     public $incrementing = true;
     protected $keyType = 'int';
-    
+    public $timestamps = false;
+
     protected $fillable = [
+        'MaTheLoai',
         'TenTheLoai',
     ];
 
-    public $timestamps = false;
+    public function dauSaches()
+    {
+        return $this->hasMany(DauSach::class, 'MaTheLoai', 'MaTheLoai');
+    }
 
     public function TL_DS()
     {
-        return $this->hasMany(DauSach::class, 'MaTheLoai', 'MaTheLoai');
+        return $this->dauSaches();
     }
 }

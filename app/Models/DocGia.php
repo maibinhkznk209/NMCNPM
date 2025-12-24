@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\LoaiDocGia;
 use App\Models\PhieuPhat;
 use App\Models\PhieuMuon;
+use Illuminate\Support\Str;
 
 class DocGia extends Model
 {
@@ -14,46 +15,50 @@ class DocGia extends Model
 
     protected $table = 'DOCGIA';
     protected $primaryKey = 'MaDocGia';
-    protected $fillable = [
-        'HoTen',
-        'MaLoaiDocGia',
-        'NgaySinh',
-        'DiaChi',
-        'Email',
-        'NgayLapThe',
-        'NgayHetHan',
-        'TongNo'
-    ];
 
-    // Accessor for compatibility
-    public function getTenAttribute()
-    {
-        return $this->HoTen;
-    }
-
-    protected $casts = [
-        'NgaySinh' => 'date',
-        'NgayLapThe' => 'date',
-        'NgayHetHan' => 'date'
-    ];
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     public $timestamps = false;
 
-    // Custom date format for JSON serialization
-    protected $dateFormat = 'Y-m-d';
+    protected $fillable = [
+        'MaDocGia',
+        'TenDocGia',
+        'Email',
+        'NgaySinh',
+        'DiaChi',
+        'MaLoaiDocGia',
+        'NgayLapThe',
+        'NgayHetHan',
+        'TongNo',
+    ];
 
-    // Specify date format for JSON output
-    protected function serializeDate(\DateTimeInterface $date)
+    protected static function booted(): void
     {
-        return $date->format('Y-m-d');
-    }
+        static::creating(function (self $model) {
+            if (blank($model->MaDocGia)) {
+                do {
+                    $id = 'DG' . strtoupper(Str::random(6)); 
+                } while (self::whereKey($id)->exists());
 
-    // Relationship với LoaiDocGia
+                $model->MaDocGia = $id;
+            }
+        });
+    }
     public function DG_LDG()
     {
         return $this->belongsTo(LoaiDocGia::class, 'MaLoaiDocGia', 'MaLoaiDocGia');
     }
-     public function DG_PP()
+     
+    /**
+     * Alias for compatibility with controllers/views that call with(\'loaiDocGia\').
+     */
+    public function loaiDocGia()
+    {
+        return $this->DG_LDG();
+    }
+
+public function DG_PP()
     {
         return $this->hasMany(PhieuPhat::class, 'MaDocGia', 'MaDocGia');
     }

@@ -2,22 +2,20 @@
 
 namespace Database\Factories;
 
+use App\Models\TacGia;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\TacGia>
+ * @extends Factory<TacGia>
  */
 class TacGiaFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = TacGia::class;
+
     public function definition(): array
     {
         return [
-            'TenTacGia' => $this->faker->name,
+            'TenTacGia' => $this->faker->name(),
         ];
     }
 }

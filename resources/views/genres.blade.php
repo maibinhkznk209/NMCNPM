@@ -482,7 +482,7 @@
   let genres = [
     @foreach ($theLoais as $theLoai)
       {
-        id: {{ $theLoai->id }},
+        id: {{ $theLoai->MaTheLoai }},
         name: '{{ addslashes($theLoai->TenTheLoai) }}',
                         dateAdded: '{{ date("Y-m-d") }}',
       },

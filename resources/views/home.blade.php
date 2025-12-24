@@ -436,7 +436,7 @@
               <select name="genre" id="genre">
                 <option value="">Tất cả thể loại</option>
                 @foreach($genres as $genre)
-                  <option value="{{ $genre->id }}" {{ request('genre') == $genre->id ? 'selected' : '' }}>
+                  <option value="{{ $genre->MaTheLoai }}" {{ (string)request('genre') === (string)$genre->MaTheLoai ? 'selected' : '' }}>
                     {{ $genre->TenTheLoai }}
                   </option>
                 @endforeach
@@ -448,11 +448,12 @@
               <select name="author" id="author">
                 <option value="">Tất cả tác giả</option>
                 @foreach($authors as $author)
-                  <option value="{{ $author->id }}" {{ request('author') == $author->id ? 'selected' : '' }}>
+                  <option value="{{ $author->MaTacGia }}" {{ (string)request('author') === (string)$author->MaTacGia ? 'selected' : '' }}>
                     {{ $author->TenTacGia }}
                   </option>
                 @endforeach
               </select>
+
             </div>
             
             <div class="filter-group">
@@ -460,7 +461,7 @@
               <select name="publisher" id="publisher">
                 <option value="">Tất cả nhà xuất bản</option>
                 @foreach($publishers as $publisher)
-                  <option value="{{ $publisher->id }}" {{ request('publisher') == $publisher->id ? 'selected' : '' }}>
+                  <option value="{{ $publisher->MaNXB }}" {{ (string)request('publisher') === (string)$publisher->MaNXB ? 'selected' : '' }}>
                     {{ $publisher->TenNXB }}
                   </option>
                 @endforeach
@@ -471,11 +472,12 @@
               <label for="status">📊 Tình trạng</label>
               <select name="status" id="status">
                 <option value="">Tất cả tình trạng</option>
-                <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Có sẵn</option>
-                <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Đang được mượn</option>
-                <option value="3" {{ request('status') == '3' ? 'selected' : '' }}>Hỏng</option>
-                <option value="4" {{ request('status') == '4' ? 'selected' : '' }}>Mất</option>
+                <option value="{{ \App\Models\CuonSach::TINH_TRANG_CO_SAN }}" {{ (string)request('status') === (string)\App\Models\CuonSach::TINH_TRANG_CO_SAN ? 'selected' : '' }}>Có sẵn</option>
+                <option value="{{ \App\Models\CuonSach::TINH_TRANG_DANG_MUON }}" {{ (string)request('status') === (string)\App\Models\CuonSach::TINH_TRANG_DANG_MUON ? 'selected' : '' }}>Đang được mượn</option>
+                <option value="{{ \App\Models\CuonSach::TINH_TRANG_HONG }}" {{ (string)request('status') === (string)\App\Models\CuonSach::TINH_TRANG_HONG ? 'selected' : '' }}>Hỏng</option>
+                <option value="{{ \App\Models\CuonSach::TINH_TRANG_BI_MAT }}" {{ (string)request('status') === (string)\App\Models\CuonSach::TINH_TRANG_BI_MAT ? 'selected' : '' }}>Mất</option>
               </select>
+
             </div>
           </div>
 
@@ -542,49 +544,63 @@
             </thead>
             <tbody>
               @foreach($books as $book)
+                @php
+                  $tenDauSach = optional($book->dauSach)->TenDauSach;
+
+                  $authorNames = '';
+                  if ($book->dauSach && $book->dauSach->tacGias && $book->dauSach->tacGias->count() > 0) {
+                      $authorNames = $book->dauSach->tacGias->pluck('TenTacGia')->unique()->implode(', ');
+                  }
+
+                  $theLoaiName = optional(optional($book->dauSach)->theLoai)->TenTheLoai;
+                  $nxbName = optional($book->nhaXuatBan)->TenNXB;
+
+                  // Tình trạng hiển thị dựa trên CUONSACH (sẽ lazy-load nếu controller chưa eager load)
+                  $statusText = 'Chưa có thông tin';
+                  $statusClass = '';
+                  $statuses = $book->cuonSachs ? $book->cuonSachs->pluck('TinhTrang') : collect();
+
+                  if ($statuses->contains(\App\Models\CuonSach::TINH_TRANG_CO_SAN)) {
+                      $statusText = 'Có sẵn';
+                      $statusClass = 'status-available';
+                  } elseif ($statuses->contains(\App\Models\CuonSach::TINH_TRANG_DANG_MUON)) {
+                      $statusText = 'Đang được mượn';
+                      $statusClass = 'status-borrowed';
+                  } elseif ($statuses->contains(\App\Models\CuonSach::TINH_TRANG_HONG)) {
+                      $statusText = 'Hỏng';
+                      $statusClass = 'status-damaged';
+                  } elseif ($statuses->contains(\App\Models\CuonSach::TINH_TRANG_BI_MAT)) {
+                      $statusText = 'Mất';
+                      $statusClass = 'status-lost';
+                  }
+                @endphp
+
                 <tr>
                   <td><strong>{{ $book->MaSach }}</strong></td>
-                  <td>{{ $book->TenSach }}</td>
-                  <td>{{ $book->tacGia->TenTacGia ?? 'Chưa có thông tin' }}</td>
+                  <td>{{ $tenDauSach }}</td>
+                  <td>{{ $authorNames !== '' ? $authorNames : 'Chưa có thông tin' }}</td>
                   <td>
-                    @if($book->theLoais && $book->theLoais->count() > 0)
+                    @if($theLoaiName)
                       <div class="genre-tags">
-                        @foreach($book->theLoais as $genre)
-                          <span class="genre-tag">{{ $genre->TenTheLoai }}</span>
-                        @endforeach
-            </div>
+                        <span class="genre-tag">{{ $theLoaiName }}</span>
+                      </div>
                     @else
                       <span style="color: #999;">Chưa có thông tin</span>
                     @endif
                   </td>
-                  <td>{{ $book->nhaXuatBan->TenNXB ?? 'Chưa có thông tin' }}</td>
-                  <td>{{ $book->NamXuatBan ?? 'Chưa có thông tin' }}</td>
-                  <td>{{ number_format($book->TriGia ?? 0) }} VNĐ</td>
+                  <td>{{ $nxbName ?? 'Chưa có thông tin' }}</td>
+                  <td>{{ $book->NamXuatBan }}</td>
+                  <td>{{ number_format($book->TriGia ?? 0, 0, ',', '.') }} VNĐ</td>
                   <td>
-                    @php
-                      $statusText = '';
-                      $statusClass = '';
-                      if ($book->TinhTrang == 1) {
-                        $statusText = 'Có sẵn';
-                        $statusClass = 'status-available';
-                      } else if ($book->TinhTrang == 0) {
-                        $statusText = 'Đang được mượn';
-                        $statusClass = 'status-borrowed';
-                      } else if ($book->TinhTrang == 3) {
-                        $statusText = 'Hỏng';
-                        $statusClass = 'status-damaged';
-                      } else if ($book->TinhTrang == 4) {
-                        $statusText = 'Mất';
-                        $statusClass = 'status-lost';
-                      }
-                    @endphp
-                    
-                    <span class="status-badge {{ $statusClass }}">
-                      {{ $statusText }}
-                    </span>
+                    @if($statusClass)
+                      <span class="status-badge {{ $statusClass }}">{{ $statusText }}</span>
+                    @else
+                      <span style="color: #999;">{{ $statusText }}</span>
+                    @endif
                   </td>
                 </tr>
               @endforeach
+
             </tbody>
           </table>
         @else

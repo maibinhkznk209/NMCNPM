@@ -2,22 +2,20 @@
 
 namespace Database\Factories;
 
+use App\Models\TheLoai;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\TheLoai>
+ * @extends Factory<TheLoai>
  */
 class TheLoaiFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = TheLoai::class;
+
     public function definition(): array
     {
         return [
-            'TenTheLoai' => $this->faker->word,
+            'TenTheLoai' => $this->faker->unique()->word(),
         ];
     }
 }

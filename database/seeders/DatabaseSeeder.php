@@ -17,6 +17,9 @@ class DatabaseSeeder extends Seeder
         LoaiDocGiaSeeder::class,
         DocGiaSeeder::class,
         SampleDataSeeder::class,
+        DauSachSeeder::class,
+        SachSeeder::class,
+        CuonSachSeeder::class,
     ]);
 }
 

@@ -31,8 +31,8 @@ class CuonSach extends Model
     // Constants for TinhTrang
     const TINH_TRANG_DANG_MUON = 0;    // Đang được mượn
     const TINH_TRANG_CO_SAN = 1;       // Có sẵn (có thể mượn)
-    const TINH_TRANG_HONG = 3;         // Hỏng (không thể mượn)
-    const TINH_TRANG_BI_MAT = 4;       // Bị mất (không thể mượn)
+    const TINH_TRANG_HONG = 2;         // Hỏng (không thể mượn)
+    const TINH_TRANG_BI_MAT = 3;       // Bị mất (không thể mượn)
 
     public function CS_S()
     {

@@ -4,48 +4,43 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\TheLoai;
+use Illuminate\Http\JsonResponse;
 
 class TheLoaiController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         $theLoais = TheLoai::all();
         return view('genres', compact('theLoais'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         try {
-        $request->validate([
-            'TenTheLoai' => 'required|string|max:255|unique:THELOAI,TenTheLoai',
-        ], [
-            'TenTheLoai.required' => 'Tên thể loại là bắt buộc',
-            'TenTheLoai.unique' => 'Thể loại này đã tồn tại',
-            'TenTheLoai.max' => 'Tên thể loại không được quá 255 ký tự',
-        ]);
+            $request->validate([
+                'TenTheLoai' => 'required|string|max:255|unique:THELOAI,TenTheLoai',
+            ], [
+                'TenTheLoai.required' => 'Tên thể loại là bắt buộc',
+                'TenTheLoai.unique' => 'Thể loại này đã tồn tại',
+                'TenTheLoai.max' => 'Tên thể loại không được quá 255 ký tự',
+            ]);
 
-        $theLoai = TheLoai::create([
-            'TenTheLoai' => $request->TenTheLoai,
-        ]);
+            $theLoai = TheLoai::create([
+                'TenTheLoai' => $request->TenTheLoai,
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'data' => $theLoai,
-            'message' => 'Thêm thể loại thành công'
-        ], 201);
+            return response()->json([
+                'success' => true,
+                'data' => $theLoai,
+                'message' => 'Thêm thể loại thành công'
+            ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->errors()['TenTheLoai'][0] ?? 'Lỗi khi lưu thể loại',
                 'errors' => $e->errors()
             ], 422);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
@@ -53,38 +48,40 @@ class TheLoaiController extends Controller
         }
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id)
+    public function update(Request $request, $id): JsonResponse
     {
         try {
-        $theLoai = TheLoai::findOrFail($id);
-        
-        $request->validate([
-            'TenTheLoai' => 'required|string|max:255|unique:THELOAI,TenTheLoai,' . $theLoai->id . ',id',
-        ], [
-            'TenTheLoai.required' => 'Tên thể loại là bắt buộc',
-            'TenTheLoai.unique' => 'Thể loại này đã tồn tại',
-            'TenTheLoai.max' => 'Tên thể loại không được quá 255 ký tự',
-        ]);
+            $theLoai = TheLoai::query()->where('MaTheLoai', $id)->firstOrFail();
 
-        $theLoai->update([
-            'TenTheLoai' => $request->TenTheLoai,
-        ]);
+            $request->validate([
+                'TenTheLoai' => 'required|string|max:255|unique:THELOAI,TenTheLoai,' . $theLoai->MaTheLoai . ',MaTheLoai',
+            ], [
+                'TenTheLoai.required' => 'Tên thể loại là bắt buộc',
+                'TenTheLoai.unique' => 'Thể loại này đã tồn tại',
+                'TenTheLoai.max' => 'Tên thể loại không được quá 255 ký tự',
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'data' => $theLoai,
-            'message' => 'Cập nhật thể loại thành công'
-        ]);
+            $theLoai->update([
+                'TenTheLoai' => $request->TenTheLoai,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $theLoai,
+                'message' => 'Cập nhật thể loại thành công'
+            ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->errors()['TenTheLoai'][0] ?? 'Lỗi khi cập nhật thể loại',
                 'errors' => $e->errors()
             ], 422);
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy thể loại'
+            ], 404);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
@@ -92,29 +89,30 @@ class TheLoaiController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id)
+    public function destroy($id): JsonResponse
     {
         try {
-            $theLoai = TheLoai::findOrFail($id);
-            
-            // Kiểm tra xem thể loại có đang được sử dụng không
-            if ($theLoai->saches()->count() > 0) {
+            $theLoai = TheLoai::query()->where('MaTheLoai', $id)->firstOrFail();
+
+            if ($theLoai->dauSaches()->exists()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Không thể xóa thể loại này vì đang có sách thuộc thể loại này'
+                    'message' => 'Không thể xóa thể loại này vì đang có đầu sách thuộc thể loại này'
                 ], 400);
             }
-            
+
             $theLoai->delete();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Xóa thể loại thành công'
-            ]);
-        } catch (\Exception $e) {
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy thể loại'
+            ], 404);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi xóa thể loại'

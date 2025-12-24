@@ -496,7 +496,7 @@
   let publishers = [
     @foreach ($nhaXuatBans as $nxb)
       {
-        id: {{ $nxb->id }},
+        id: {{ $nxb->MaNXB }},
         name: '{{ addslashes($nxb->TenNXB) }}',
                         dateAdded: '{{ date("Y-m-d") }}',
       },
@@ -640,7 +640,7 @@
         response = await goApi('/api/nhaxuatban', 'POST', data);
         if (response.success) {
           publishers.push({
-            id: response.data.id,
+            id: response.data.MaNXB,
             name: response.data.TenNXB,
                             dateAdded: new Date().toISOString().split('T')[0]
           });

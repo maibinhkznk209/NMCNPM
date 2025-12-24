@@ -8,17 +8,28 @@ use Illuminate\Http\Request;
 class QuyDinhController extends Controller
 {
     /**
+     */
+    private function quyDinhDto(QuyDinh $qd): array
+    {
+        return [
+            'id' => $qd->getKey(),               // = MaThamSo theo QuyDinh.php
+            'TenThamSo' => $qd->TenThamSo,
+            'GiaTri' => (string) $qd->GiaTri,    // ép string cho khớp test
+        ];
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
         $quyDinhs = QuyDinh::orderBy('TenThamSo')->get();
 
-        // Nếu là AJAX request, trả về JSON
+        // Nếu là AJAX/JSON request, trả về JSON
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'data' => $quyDinhs
+                'data' => $quyDinhs->map(fn ($qd) => $this->quyDinhDto($qd))->values(),
             ]);
         }
 
@@ -32,14 +43,15 @@ class QuyDinhController extends Controller
     {
         try {
             $quyDinh = QuyDinh::findOrFail($id);
+
             return response()->json([
                 'success' => true,
-                'data' => $quyDinh
+                'data' => $this->quyDinhDto($quyDinh),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy quy định'
+                'message' => 'Không tìm thấy quy định',
             ], 404);
         }
     }
@@ -57,32 +69,21 @@ class QuyDinhController extends Controller
                 'numeric',
                 'min:1',
                 function ($attribute, $value, $fail) use ($quyDinh) {
-                    // Validation dựa trên loại tham số
                     $tenThamSo = $quyDinh->TenThamSo;
-                    
+
                     if (str_contains($tenThamSo, 'Tuoi')) {
-                        if ($value < 1 || $value > 100) {
-                            $fail('Tuổi phải từ 1 đến 100');
-                        }
+                        if ($value < 1 || $value > 100) $fail('Tuổi phải từ 1 đến 100');
                     } elseif (str_contains($tenThamSo, 'ThoiHan')) {
-                        if ($value < 1 || $value > 120) {
-                            $fail('Số tháng phải từ 1 đến 120');
-                        }
+                        if ($value < 1 || $value > 120) $fail('Số tháng phải từ 1 đến 120');
                     } elseif (str_contains($tenThamSo, 'Ngay')) {
-                        if ($value < 1 || $value > 365) {
-                            $fail('Số ngày phải từ 1 đến 365');
-                        }
+                        if ($value < 1 || $value > 365) $fail('Số ngày phải từ 1 đến 365');
                     } elseif (str_contains($tenThamSo, 'Sach')) {
-                        if ($value < 1 || $value > 50) {
-                            $fail('Số sách phải từ 1 đến 50');
-                        }
+                        if ($value < 1 || $value > 50) $fail('Số sách phải từ 1 đến 50');
                     } elseif (str_contains($tenThamSo, 'Nam')) {
-                        if ($value < 1 || $value > 50) {
-                            $fail('Số năm phải từ 1 đến 50');
-                        }
+                        if ($value < 1 || $value > 50) $fail('Số năm phải từ 1 đến 50');
                     }
-                }
-            ]
+                },
+            ],
         ], [
             'GiaTri.required' => 'Giá trị quy định là bắt buộc',
             'GiaTri.numeric' => 'Giá trị phải là số',
@@ -95,24 +96,30 @@ class QuyDinhController extends Controller
             ]);
 
             if ($request->expectsJson()) {
+                $qd = $quyDinh->fresh();
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Cập nhật quy định thành công',
-                    'data' => $quyDinh->fresh()
+                    'data' => $this->quyDinhDto($qd),
                 ]);
             }
 
-            return redirect()->route('regulations.index')->with('success', 'Cập nhật quy định thành công');
-            
+            return redirect()
+                ->route('regulations.index')
+                ->with('success', 'Cập nhật quy định thành công');
+
         } catch (\Exception $e) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
+                    'message' => 'Có lỗi xảy ra: ' . $e->getMessage(),
                 ], 500);
             }
 
-            return redirect()->route('regulations.index')->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+            return redirect()
+                ->route('regulations.index')
+                ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
     }
 
@@ -123,12 +130,12 @@ class QuyDinhController extends Controller
     {
         $quyDinh = QuyDinh::findOrFail($id);
         $tenThamSo = $quyDinh->TenThamSo;
-        
+
         $validationInfo = [
             'min' => 1,
             'max' => 100,
             'unit' => '',
-            'description' => ''
+            'description' => '',
         ];
 
         if (str_contains($tenThamSo, 'Tuoi')) {
@@ -155,7 +162,7 @@ class QuyDinhController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $validationInfo
+            'data' => $validationInfo,
         ]);
     }
 }

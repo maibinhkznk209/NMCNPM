@@ -17,13 +17,13 @@ class DocGiaController extends Controller
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('HoTen', 'like', "%{$search}%")
+                $q->where('TenDocGia', 'like', "%{$search}%")
                   ->orWhere('Email', 'like', "%{$search}%")
                   ->orWhere('DiaChi', 'like', "%{$search}%");
             });
         }
 
-        $query->orderBy('HoTen', 'asc');
+        $query->orderBy('TenDocGia', 'asc');
 
         $docGias = $query->get();
         $loaiDocGias = LoaiDocGia::orderBy('TenLoaiDocGia')->get();
@@ -43,8 +43,8 @@ class DocGiaController extends Controller
     {
         try {
         $request->validate([
-            'HoTen' => 'required|string|max:255',
-            'loaidocgia_id' => 'required|exists:LOAIDOCGIA,id',
+            'TenDocGia' => 'required|string|max:255',
+            'MaLoaiDocGia' => 'required|exists:LOAIDOCGIA,MaLoaiDocGia',
             'NgaySinh' => [
                 'required',
                 'date',
@@ -70,6 +70,7 @@ class DocGiaController extends Controller
             ],
             'DiaChi' => 'required|string|max:500',
             'Email' => [
+                'bail',
                 'required',
                 'email',
                 function ($attribute, $value, $fail) {
@@ -92,10 +93,10 @@ class DocGiaController extends Controller
                 'max:999999999'
             ],
         ], [
-            'HoTen.required' => 'Họ tên là bắt buộc',
-            'HoTen.max' => 'Họ tên không được quá 255 ký tự',
-            'loaidocgia_id.required' => 'Loại độc giả là bắt buộc',
-            'loaidocgia_id.exists' => 'Loại độc giả không hợp lệ',
+            'TenDocGia.required' => 'Họ tên là bắt buộc',
+            'TenDocGia.max' => 'Họ tên không được quá 255 ký tự',
+            'MaLoaiDocGia.required' => 'Loại độc giả là bắt buộc',
+            'MaLoaiDocGia.exists' => 'Loại độc giả không hợp lệ',
             'NgaySinh.required' => 'Ngày sinh là bắt buộc',
             'NgaySinh.date' => 'Ngày sinh không hợp lệ',
             'DiaChi.required' => 'Địa chỉ là bắt buộc',
@@ -112,8 +113,8 @@ class DocGiaController extends Controller
         ]);
 
             $docGia = DocGia::create([
-                'HoTen' => $request->HoTen,
-                'loaidocgia_id' => $request->loaidocgia_id,
+                'TenDocGia' => $request->TenDocGia,
+                'MaLoaiDocGia' => $request->MaLoaiDocGia,
                 'NgaySinh' => $request->NgaySinh,
                 'DiaChi' => $request->DiaChi,
                 'Email' => $request->Email,
@@ -167,8 +168,8 @@ class DocGiaController extends Controller
         $docGia = DocGia::findOrFail($id);
 
         $request->validate([
-            'HoTen' => 'required|string|max:255',
-            'loaidocgia_id' => 'required|exists:LOAIDOCGIA,id',
+            'TenDocGia' => 'required|string|max:255',
+            'MaLoaiDocGia' => 'required|exists:LOAIDOCGIA,MaLoaiDocGia',
             'NgaySinh' => [
                 'required',
                 'date',
@@ -194,12 +195,14 @@ class DocGiaController extends Controller
             ],
             'DiaChi' => 'required|string|max:500',
             'Email' => [
+                'bail',
                 'required',
                 'email',
                 function ($attribute, $value, $fail) use ($id) {
                     $exists = DocGia::whereRaw('LOWER(Email) = ?', [mb_strtolower($value)])
-                        ->where('id', '!=', $id)
+                        ->where('MaDocGia', '!=', $id)
                         ->exists();
+
                     if ($exists) {
                         $fail('Email đã tồn tại');
                     }
@@ -218,10 +221,10 @@ class DocGiaController extends Controller
                 'max:999999999'
             ],
         ], [
-            'HoTen.required' => 'Họ tên là bắt buộc',
-            'HoTen.max' => 'Họ tên không được quá 255 ký tự',
-            'loaidocgia_id.required' => 'Loại độc giả là bắt buộc',
-            'loaidocgia_id.exists' => 'Loại độc giả không hợp lệ',
+            'TenDocGia.required' => 'Họ tên là bắt buộc',
+            'TenDocGia.max' => 'Họ tên không được quá 255 ký tự',
+            'MaLoaiDocGia.required' => 'Loại độc giả là bắt buộc',
+            'MaLoaiDocGia.exists' => 'Loại độc giả không hợp lệ',
             'NgaySinh.required' => 'Ngày sinh là bắt buộc',
             'NgaySinh.date' => 'Ngày sinh không hợp lệ',
             'DiaChi.required' => 'Địa chỉ là bắt buộc',
@@ -238,8 +241,8 @@ class DocGiaController extends Controller
         ]);
 
             $docGia->update([
-                'HoTen' => $request->HoTen,
-                'loaidocgia_id' => $request->loaidocgia_id,
+                'TenDocGia' => $request->TenDocGia,
+                'MaLoaiDocGia' => $request->MaLoaiDocGia,
                 'NgaySinh' => $request->NgaySinh,
                 'DiaChi' => $request->DiaChi,
                 'Email' => $request->Email,
@@ -294,8 +297,8 @@ class DocGiaController extends Controller
             $docGia = DocGia::findOrFail($id);
             
             // Check if reader has any active borrows
-            $activeBorrows = \App\Models\PhieuMuon::where('docgia_id', $docGia->id)
-                ->whereHas('chiTietPhieuMuon', function($query) {
+            $activeBorrows = \App\Models\PhieuMuon::where('MaDocGia', $docGia->MaDocGia)
+                ->whereHas('PM_S', function($query) {
                     $query->whereNull('NgayTra');
                 })->count();
             

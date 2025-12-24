@@ -2,151 +2,137 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\PhieuThuTienPhat;
+use App\Models\PhieuPhat;
 use App\Models\DocGia;
-use App\Models\ChiTietPhieuMuon;
 use Carbon\Carbon;
 
 class FineRecordsSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Track codes generated in this seeding run to prevent duplicates
      */
+    private array $usedCodes = [];
+
     public function run(): void
     {
-        // Tạo dữ liệu test cho phiếu thu tiền phạt
+        $maDocGiaList = DocGia::query()->pluck('MaDocGia')->values();
+
+        if ($maDocGiaList->isEmpty()) {
+            $this->command?->warn('DOCGIA đang rỗng, bỏ qua FineRecordsSeeder.');
+            return;
+        }
+
+        $dg1 = $maDocGiaList[0];
+        $dg2 = $maDocGiaList[1] ?? $dg1;
+        $dg3 = $maDocGiaList[2] ?? $dg1;
+
         $fineRecords = [
-            // 1. Thu tiền phạt trễ hạn
-            [
-                'docgia_id' => 2,
-                'SoTienNop' => 11000,
-                'NgayThu' => Carbon::now()->subDays(3),
-                'description' => 'Thu tiền phạt trễ hạn 11 ngày',
-            ],
-            
-            // 2. Thu tiền phạt trễ hạn nhẹ
-            [
-                'docgia_id' => 2,
-                'SoTienNop' => 4000,
-                'NgayThu' => Carbon::now()->subDays(1),
-                'description' => 'Thu tiền phạt trễ hạn 4 ngày',
-            ],
-            
-            // 3. Thu tiền đền bù sách hỏng
-            [
-                'docgia_id' => 1,
-                'SoTienNop' => 50000,
-                'NgayThu' => Carbon::now()->subDays(2),
-                'description' => 'Thu tiền đền bù sách bị hỏng',
-            ],
-            
-            // 4. Thu tiền đền bù sách mất
-            [
-                'docgia_id' => 2,
-                'SoTienNop' => 120000,
-                'NgayThu' => Carbon::now()->subDays(4),
-                'description' => 'Thu tiền đền bù sách bị mất',
-            ],
-            
-            // 5. Thu tiền đền bù sách hỏng nhẹ
-            [
-                'docgia_id' => 3,
-                'SoTienNop' => 25000,
-                'NgayThu' => Carbon::now()->subDays(1),
-                'description' => 'Thu tiền đền bù sách hỏng nhẹ',
-            ],
-            
-            // 6. Thu tiền phạt trễ hạn + đền bù sách hỏng
-            [
-                'docgia_id' => 1,
-                'SoTienNop' => 57000, // 7000 phạt + 50000 đền bù
-                'NgayThu' => Carbon::now()->subDays(2),
-                'description' => 'Thu tiền phạt trễ hạn và đền bù sách hỏng',
-            ],
-            
-            // 7. Thu tiền phạt trễ hạn + đền bù sách mất
-            [
-                'docgia_id' => 2,
-                'SoTienNop' => 136000, // 16000 phạt + 120000 đền bù
-                'NgayThu' => Carbon::now()->subDays(4),
-                'description' => 'Thu tiền phạt trễ hạn và đền bù sách mất',
-            ],
-            
-            // 8. Thu tiền phạt một phần (còn nợ)
-            [
-                'docgia_id' => 3,
-                'SoTienNop' => 15000,
-                'NgayThu' => Carbon::now()->subDays(1),
-                'description' => 'Thu tiền phạt một phần (còn nợ)',
-            ],
-            
-            // 9. Thu tiền phạt cũ (từ tháng trước)
-            [
-                'docgia_id' => 1,
-                'SoTienNop' => 30000,
-                'NgayThu' => Carbon::now()->subDays(25),
-                'description' => 'Thu tiền phạt từ tháng trước',
-            ],
-            
-            // 10. Thu tiền phạt hôm nay
-            [
-                'docgia_id' => 2,
-                'SoTienNop' => 8000,
-                'NgayThu' => Carbon::now(),
-                'description' => 'Thu tiền phạt hôm nay',
-            ],
+            ['MaDocGia' => $dg2, 'SoTienNop' => 11000,  'NgayThu' => Carbon::now()->subDays(3),  'description' => 'Thu tiền phạt trễ hạn 11 ngày'],
+            ['MaDocGia' => $dg2, 'SoTienNop' => 4000,   'NgayThu' => Carbon::now()->subDays(1),  'description' => 'Thu tiền phạt trễ hạn 4 ngày'],
+            ['MaDocGia' => $dg1, 'SoTienNop' => 50000,  'NgayThu' => Carbon::now()->subDays(2),  'description' => 'Thu tiền đền bù sách bị hỏng'],
+            ['MaDocGia' => $dg2, 'SoTienNop' => 120000, 'NgayThu' => Carbon::now()->subDays(4),  'description' => 'Thu tiền đền bù sách bị mất'],
+            ['MaDocGia' => $dg3, 'SoTienNop' => 25000,  'NgayThu' => Carbon::now()->subDays(1),  'description' => 'Thu tiền đền bù sách hỏng nhẹ'],
+            ['MaDocGia' => $dg1, 'SoTienNop' => 57000,  'NgayThu' => Carbon::now()->subDays(2),  'description' => 'Thu tiền phạt trễ hạn và đền bù sách hỏng'],
+            ['MaDocGia' => $dg2, 'SoTienNop' => 136000, 'NgayThu' => Carbon::now()->subDays(4),  'description' => 'Thu tiền phạt trễ hạn và đền bù sách mất'],
+            ['MaDocGia' => $dg3, 'SoTienNop' => 15000,  'NgayThu' => Carbon::now()->subDays(1),  'description' => 'Thu tiền phạt một phần (còn nợ)'],
+            ['MaDocGia' => $dg1, 'SoTienNop' => 30000,  'NgayThu' => Carbon::now()->subDays(25), 'description' => 'Thu tiền phạt từ tháng trước'],
+            ['MaDocGia' => $dg2, 'SoTienNop' => 8000,   'NgayThu' => Carbon::now(),              'description' => 'Thu tiền phạt hôm nay'],
         ];
 
         foreach ($fineRecords as $record) {
-            // Kiểm tra độc giả có tồn tại không
-            $docGia = DocGia::find($record['docgia_id']);
-            
-            if ($docGia) {
-                // Tạo phiếu thu tiền phạt
-                $phieuThu = PhieuThuTienPhat::create([
-                    'MaPhieu' => PhieuThuTienPhat::generateMaPhieu(),
-                    'docgia_id' => $record['docgia_id'],
-                    'SoTienNop' => $record['SoTienNop'],
-                    'NgayThu' => $record['NgayThu'],
-                ]);
-                
-                // Cập nhật tổng nợ của độc giả (giảm đi số tiền đã thu)
-                $docGia->TongNo = max(0, $docGia->TongNo - $record['SoTienNop']);
-                $docGia->save();
-                
-                echo "Đã tạo phiếu thu: {$phieuThu->MaPhieu} - {$record['description']}\n";
+            $docGia = DocGia::query()->where('MaDocGia', $record['MaDocGia'])->first();
+
+            if (!$docGia) {
+                $this->command?->warn("Không tìm thấy DOCGIA.MaDocGia = {$record['MaDocGia']}, bỏ qua record.");
+                continue;
             }
+
+            $maPhieu = $this->nextUniqueMaPhieuPhat();
+
+            // KHÔNG dùng create() để tránh vấn đề fillable; set trực tiếp rồi save()
+            $phieuThu = new PhieuPhat();
+            $phieuThu->MaPhieuPhat = $maPhieu;
+            $phieuThu->MaDocGia    = $docGia->MaDocGia;
+            $phieuThu->SoTienNop   = $record['SoTienNop'];
+            $phieuThu->NgayThu     = $record['NgayThu'];
+            $phieuThu->save();
+
+            $docGia->TongNo = max(0, (float)$docGia->TongNo - (float)$record['SoTienNop']);
+            $docGia->save();
+
+            echo "Đã tạo phiếu thu: {$phieuThu->MaPhieuPhat} - {$record['description']}\n";
         }
-        
-        // Tạo thêm một số phiếu thu ngẫu nhiên
+
         $this->createRandomFineRecords();
     }
-    
-    /**
-     * Tạo thêm phiếu thu ngẫu nhiên
-     */
-    private function createRandomFineRecords()
+
+    private function createRandomFineRecords(): void
     {
-        $docGias = DocGia::all();
+        $docGias = DocGia::query()->get();
+
+        if ($docGias->isEmpty()) {
+            $this->command?->warn('DOCGIA đang rỗng, bỏ qua tạo phiếu thu ngẫu nhiên.');
+            return;
+        }
+
         $fineAmounts = [5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000];
-        
+
         for ($i = 0; $i < 5; $i++) {
-            $docGia = $docGias->random();
-            $amount = $fineAmounts[array_rand($fineAmounts)];
+            $docGia  = $docGias->random();
+            $amount  = $fineAmounts[array_rand($fineAmounts)];
             $daysAgo = rand(1, 30);
-            
-            PhieuThuTienPhat::create([
-                'MaPhieu' => PhieuThuTienPhat::generateMaPhieu(),
-                'docgia_id' => $docGia->id,
-                'SoTienNop' => $amount,
-                'NgayThu' => Carbon::now()->subDays($daysAgo),
-            ]);
-            
-            // Cập nhật tổng nợ
-            $docGia->TongNo = max(0, $docGia->TongNo - $amount);
+
+            $maPhieu = $this->nextUniqueMaPhieuPhat();
+
+            $phieuThu = new PhieuPhat();
+            $phieuThu->MaPhieuPhat = $maPhieu;
+            $phieuThu->MaDocGia    = $docGia->MaDocGia;
+            $phieuThu->SoTienNop   = $amount;
+            $phieuThu->NgayThu     = Carbon::now()->subDays($daysAgo);
+            $phieuThu->save();
+
+            $docGia->TongNo = max(0, (float)$docGia->TongNo - (float)$amount);
             $docGia->save();
         }
+    }
+
+    /**
+     * Still uses PhieuPhat::generateMaPhieuPhat(), but guarantees uniqueness
+     * inside this seeding run (and against existing DB rows).
+     */
+    private function nextUniqueMaPhieuPhat(): string
+    {
+        // 1) call your generate method (requirement)
+        $code = PhieuPhat::generateMaPhieuPhat();
+
+        // 2) if unique, accept
+        if (!$this->isCodeTaken($code)) {
+            $this->usedCodes[] = $code;
+            return $code;
+        }
+
+        // 3) fallback: increment from the latest code we have (or from the generated code)
+        $base = !empty($this->usedCodes) ? end($this->usedCodes) : $code;
+
+        $prefix = substr($base, 0, -4);
+        $num    = (int)substr($base, -4);
+
+        do {
+            $num++;
+            $candidate = $prefix . str_pad((string)$num, 4, '0', STR_PAD_LEFT);
+        } while ($this->isCodeTaken($candidate));
+
+        $this->usedCodes[] = $candidate;
+        return $candidate;
+    }
+
+    private function isCodeTaken(string $code): bool
+    {
+        if (in_array($code, $this->usedCodes, true)) return true;
+
+        return PhieuPhat::query()
+            ->where('MaPhieuPhat', $code)
+            ->exists();
     }
 }

@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\PhieuMuon;
-use App\Models\ChiTietPhieuMuon;
+use App\Models\CT_PHIEUMUON;
 use App\Models\DocGia;
 use App\Models\Sach;
 use Carbon\Carbon;
@@ -21,8 +21,8 @@ class PhieuMuonSeeder extends Seeder
         $borrowRecords = [
             // 1. Đang mượn - chưa trả
             [
-                'docgia_id' => 1,
-                'sach_id' => 1,
+                'MaDocGia' => 1,
+                'MaSach' => 1,
                 'NgayMuon' => Carbon::now()->subDays(5),
                 'NgayTra' => null,
                 'TienPhat' => 0,
@@ -32,8 +32,8 @@ class PhieuMuonSeeder extends Seeder
             
             // 2. Trễ hạn - đã trả
             [
-                'docgia_id' => 2,
-                'sach_id' => 2,
+                'MaDocGia' => 2,
+                'MaSach' => 2,
                 'NgayMuon' => Carbon::now()->subDays(25),
                 'NgayTra' => Carbon::now()->subDays(2),
                 'TienPhat' => 11000, // 11 ngày trễ * 1000đ
@@ -43,8 +43,8 @@ class PhieuMuonSeeder extends Seeder
             
             // 3. Đúng hạn - đã trả
             [
-                'docgia_id' => 3,
-                'sach_id' => 3,
+                'MaDocGia' => 3,
+                'MaSach' => 3,
                 'NgayMuon' => Carbon::now()->subDays(14),
                 'NgayTra' => Carbon::now()->subDays(1),
                 'TienPhat' => 0,
@@ -54,8 +54,8 @@ class PhieuMuonSeeder extends Seeder
             
             // 4. Làm hỏng sách - đã trả
             [
-                'docgia_id' => 1,
-                'sach_id' => 4,
+                'MaDocGia' => 1,
+                'MaSach' => 4,
                 'NgayMuon' => Carbon::now()->subDays(20),
                 'NgayTra' => Carbon::now()->subDays(3),
                 'TienPhat' => 7000, // 7 ngày trễ
@@ -65,8 +65,8 @@ class PhieuMuonSeeder extends Seeder
             
             // 5. Mất sách - đã trả
             [
-                'docgia_id' => 2,
-                'sach_id' => 5,
+                'MaDocGia' => 2,
+                'MaSach' => 5,
                 'NgayMuon' => Carbon::now()->subDays(30),
                 'NgayTra' => Carbon::now()->subDays(5),
                 'TienPhat' => 16000, // 16 ngày trễ
@@ -76,8 +76,8 @@ class PhieuMuonSeeder extends Seeder
             
             // 6. Quá hạn - chưa trả
             [
-                'docgia_id' => 3,
-                'sach_id' => 1,
+                'MaDocGia' => 3,
+                'MaSach' => 1,
                 'NgayMuon' => Carbon::now()->subDays(20),
                 'NgayTra' => null,
                 'TienPhat' => 0,
@@ -87,8 +87,8 @@ class PhieuMuonSeeder extends Seeder
             
             // 7. Trả sớm - đã trả
             [
-                'docgia_id' => 1,
-                'sach_id' => 2,
+                'MaDocGia' => 1,
+                'MaSach' => 2,
                 'NgayMuon' => Carbon::now()->subDays(10),
                 'NgayTra' => Carbon::now()->subDays(5),
                 'TienPhat' => 0,
@@ -98,8 +98,8 @@ class PhieuMuonSeeder extends Seeder
             
             // 8. Trễ hạn nhẹ - đã trả
             [
-                'docgia_id' => 2,
-                'sach_id' => 3,
+                'MaDocGia' => 2,
+                'MaSach' => 3,
                 'NgayMuon' => Carbon::now()->subDays(18),
                 'NgayTra' => Carbon::now()->subDays(1),
                 'TienPhat' => 4000, // 4 ngày trễ
@@ -109,8 +109,8 @@ class PhieuMuonSeeder extends Seeder
             
             // 9. Làm hỏng nhẹ - đã trả
             [
-                'docgia_id' => 3,
-                'sach_id' => 4,
+                'MaDocGia' => 3,
+                'MaSach' => 4,
                 'NgayMuon' => Carbon::now()->subDays(15),
                 'NgayTra' => Carbon::now()->subDays(2),
                 'TienPhat' => 0,
@@ -120,8 +120,8 @@ class PhieuMuonSeeder extends Seeder
             
             // 10. Mượn nhiều sách - một số đã trả, một số chưa
             [
-                'docgia_id' => 1,
-                'sach_id' => 5,
+                'MaDocGia' => 1,
+                'MaSach' => 5,
                 'NgayMuon' => Carbon::now()->subDays(8),
                 'NgayTra' => null,
                 'TienPhat' => 0,
@@ -132,23 +132,23 @@ class PhieuMuonSeeder extends Seeder
 
         foreach ($borrowRecords as $record) {
             // Check if reader and book exist
-            $reader = DocGia::find($record['docgia_id']);
-            $book = Sach::find($record['sach_id']);
+            $reader = DocGia::find($record['MaDocGia']);
+            $book = Sach::find($record['MaSach']);
             
             if ($reader && $book) {
                 // Tạo phiếu mượn
                 $phieuMuon = new PhieuMuon([
-                    'docgia_id' => $record['docgia_id'],
+                    'MaDocGia' => $record['MaDocGia'],
                     'NgayMuon' => $record['NgayMuon'],
                     'NgayHenTra' => Carbon::parse($record['NgayMuon'])->addDays(14), // 14 ngày mượn
                 ]);
-                $phieuMuon->MaPhieu = $phieuMuon->generateMaPhieu();
+                $phieuMuon->MaPhieuMuon = $phieuMuon->generateMaPhieu();
                 $phieuMuon->save();
 
                 // Tạo chi tiết phiếu mượn
-                ChiTietPhieuMuon::create([
-                    'phieumuon_id' => $phieuMuon->id,
-                    'sach_id' => $record['sach_id'],
+                CT_PHIEUMUON::create([
+                    'MaPhieuMuon' => $phieuMuon->id,
+                    'MaSach' => $record['MaSach'],
                     'NgayTra' => $record['NgayTra'],
                     'TienPhat' => $record['TienPhat'],
                     'TienDenBu' => $record['TienDenBu'],

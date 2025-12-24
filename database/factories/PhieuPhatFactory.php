@@ -2,14 +2,14 @@
 
 namespace Database\Factories;
 
-use App\Models\PhieuThuTienPhat;
+use App\Models\PhieuPhat;
 use App\Models\DocGia;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\PhieuThuTienPhat>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\PhieuPhat>
  */
-class PhieuThuTienPhatFactory extends Factory
+class PhieuPhatFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -19,8 +19,8 @@ class PhieuThuTienPhatFactory extends Factory
     public function definition(): array
     {
         return [
-            'MaPhieu' => 'PTP' . date('Y') . '-' . str_pad($this->faker->unique()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
-            'docgia_id' => DocGia::factory(),
+            'MaPhieuPhat' => 'PTP' . date('Y') . '-' . str_pad($this->faker->unique()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
+            'MaDocGia' => DocGia::factory(),
             'SoTienNop' => $this->faker->randomFloat(2, 10000, 500000),
             'NgayThu' => $this->faker->dateTimeBetween('-1 year', 'now'),
         ];
@@ -42,7 +42,7 @@ class PhieuThuTienPhatFactory extends Factory
     public function forReader(DocGia $docGia): static
     {
         return $this->state(fn (array $attributes) => [
-            'docgia_id' => $docGia->id,
+            'MaDocGia' => $docGia->MaDocGia,
         ]);
     }
 

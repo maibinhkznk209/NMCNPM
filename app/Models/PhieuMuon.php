@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use App\Models\DocGia;
-use App\Models\CT_PhieuMuon;
+use App\Models\CT_PHIEUMUON;
 
 class PhieuMuon extends Model
 {
@@ -14,7 +14,11 @@ class PhieuMuon extends Model
 
     protected $table = 'PHIEUMUON';
     protected $primaryKey = 'MaPhieuMuon';
+    protected $keyType = 'string';
+    public $incrementing = false;
+    public $timestamps = false;
     protected $fillable = [
+        'MaPhieuMuon',
         'MaDocGia',
         'NgayMuon',
         'NgayHenTra',
@@ -27,16 +31,13 @@ class PhieuMuon extends Model
 
     protected $appends = ['TrangThai'];
 
-    public $timestamps = false;
 
-    // Boot method to handle model events
     protected static function boot()
     {
         parent::boot();
         
-        // When deleting a PhieuMuon, also delete its CT_PHIEUMUON records
         static::deleting(function ($phieuMuon) {
-            $phieuMuon->CT_PHIEUMUON()->delete();
+            $phieuMuon->PM_S()->delete();
         });
     }
 
@@ -48,26 +49,26 @@ class PhieuMuon extends Model
    public function PM_S()
 {
     return $this->hasMany(
-        CT_PhieuMuon::class,
+        CT_PHIEUMUON::class,
         'MaPhieuMuon',
         'MaPhieuMuon'
     );
 }
 
-    // Method to generate unique MaPhieu
+    // Method to generate unique MaPhieuMuon
     public static function generateMaPhieu()
     {
         $prefix = 'PM';
         $year = date('Y');
         
         // Lấy số thứ tự cao nhất trong năm hiện tại
-        $latestPhieu = self::where('MaPhieu', 'LIKE', $prefix . $year . '%')
-                          ->orderBy('MaPhieu', 'desc')
+        $latestPhieu = self::where('MaPhieuMuon', 'LIKE', $prefix . $year . '%')
+                          ->orderBy('MaPhieuMuon', 'desc')
                           ->first();
         
         if ($latestPhieu) {
             // Lấy số thứ tự từ mã phiếu cuối cùng
-            $lastNumber = (int)substr($latestPhieu->MaPhieu, -4);
+            $lastNumber = (int)substr($latestPhieu->MaPhieuMuon, -4);
             $nextNumber = $lastNumber + 1;
         } else {
             $nextNumber = 1;
@@ -80,7 +81,7 @@ class PhieuMuon extends Model
     // Accessor for Trạng thái
     public function getTrangThaiAttribute()
     {
-        $chiTiet = $this->CT_PHIEUMUON;
+        $chiTiet = $this->PM_S;
         
         if ($chiTiet->isEmpty()) {
             return 'active';

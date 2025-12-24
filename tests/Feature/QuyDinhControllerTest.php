@@ -67,7 +67,7 @@ class QuyDinhControllerTest extends TestCase
                     'success' => true,
                     'data' => [
                         [
-                            'id' => $this->quyDinh->id,
+                            'id' => $this->quyDinh->getKey(),
                             'TenThamSo' => 'TuoiToiThieu',
                             'GiaTri' => '18'
                         ]
@@ -78,13 +78,14 @@ class QuyDinhControllerTest extends TestCase
     /** @test */
     public function admin_can_view_specific_regulation()
     {
-        $response = $this->getJson("/api/regulations/{$this->quyDinh->id}");
+        $id = $this->quyDinh->getKey(); // = MaThamSo
+        $response = $this->getJson("/api/regulations/{$id}");
 
         $response->assertStatus(200)
                 ->assertJson([
                     'success' => true,
                     'data' => [
-                        'id' => $this->quyDinh->id,
+                        'id' => $id,
                         'TenThamSo' => 'TuoiToiThieu',
                         'GiaTri' => '18'
                     ]
@@ -106,32 +107,34 @@ class QuyDinhControllerTest extends TestCase
     /** @test */
     public function admin_can_update_regulation_with_valid_data()
     {
-        $response = $this->putJson("/api/regulations/{$this->quyDinh->id}", [
-            'GiaTri' => '20'
+        $id = $this->quyDinh->getKey();
+
+        $response = $this->putJson("/api/regulations/{$id}", [
+            'GiaTri' => 20
         ]);
 
-        $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'message' => 'Cập nhật quy định thành công',
-                    'data' => [
-                        'id' => $this->quyDinh->id,
-                        'TenThamSo' => 'TuoiToiThieu',
-                        'GiaTri' => '20'
-                    ]
-                ]);
+       $response->assertStatus(200)
+        ->assertJson([
+            'success' => true,
+            'message' => 'Cập nhật quy định thành công',
+            'data' => [
+                'id' => $id,
+                'TenThamSo' => 'TuoiToiThieu',
+                'GiaTri' => '20'
+            ]
+        ]);
 
         $this->assertDatabaseHas('THAMSO', [
-            'id' => $this->quyDinh->id,
+            'MaThamSo' => $id,
             'TenThamSo' => 'TuoiToiThieu',
-            'GiaTri' => '20'
-        ]);
+            'GiaTri' => '20',
+    ]);
     }
 
     /** @test */
     public function admin_cannot_update_regulation_without_value()
     {
-        $response = $this->putJson("/api/regulations/{$this->quyDinh->id}", []);
+        $response = $this->putJson("/api/regulations/{$this->quyDinh->getKey()}", []);
 
         $response->assertStatus(422)
                 ->assertJsonValidationErrors(['GiaTri']);
@@ -140,7 +143,7 @@ class QuyDinhControllerTest extends TestCase
     /** @test */
     public function admin_cannot_update_regulation_with_non_numeric_value()
     {
-        $response = $this->putJson("/api/regulations/{$this->quyDinh->id}", [
+        $response = $this->putJson("/api/regulations/{$this->quyDinh->getKey()}", [
             'GiaTri' => 'abc'
         ]);
 
@@ -151,7 +154,7 @@ class QuyDinhControllerTest extends TestCase
     /** @test */
     public function admin_cannot_update_regulation_with_negative_value()
     {
-        $response = $this->putJson("/api/regulations/{$this->quyDinh->id}", [
+        $response = $this->putJson("/api/regulations/{$this->quyDinh->getKey()}", [
             'GiaTri' => '-5'
         ]);
 
@@ -167,7 +170,8 @@ class QuyDinhControllerTest extends TestCase
             'GiaTri' => '55'
         ]);
 
-        $response = $this->putJson("/api/regulations/{$ageRegulation->id}", [
+        $id = $ageRegulation->getKey(); // = MaThamSo
+        $response = $this->putJson("/api/regulations/{$id}", [
             'GiaTri' => '150'
         ]);
 
@@ -183,7 +187,7 @@ class QuyDinhControllerTest extends TestCase
             'GiaTri' => '6'
         ]);
 
-        $response = $this->putJson("/api/regulations/{$durationRegulation->id}", [
+        $response = $this->putJson("/api/regulations/{$durationRegulation->getKey()}", [
             'GiaTri' => '150'
         ]);
 
@@ -233,7 +237,7 @@ class QuyDinhControllerTest extends TestCase
     /** @test */
     public function admin_cannot_delete_regulation()
     {
-        $response = $this->deleteJson("/api/regulations/{$this->quyDinh->id}");
+        $response = $this->deleteJson("/api/regulations/{$this->quyDinh->getKey()}");
 
         $response->assertStatus(405); // Method Not Allowed
     }

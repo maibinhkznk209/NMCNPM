@@ -16,8 +16,6 @@ class LoaiDocGiaControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['database.default' => 'sqlite']);
-        config(['database.connections.sqlite.database' => ':memory:']);
     }
 
     /** @test */
@@ -87,7 +85,7 @@ class LoaiDocGiaControllerTest extends TestCase
 
         $loaiDocGia = LoaiDocGia::factory()->create(['TenLoaiDocGia' => 'Sinh viên']);
 
-        $response = $this->putJson("/api/loaidocgia/{$loaiDocGia->id}", [
+        $response = $this->putJson("/api/loaidocgia/{$loaiDocGia->MaLoaiDocGia}", [
             'TenLoaiDocGia' => 'Giảng viên',
         ]);
 
@@ -98,7 +96,7 @@ class LoaiDocGiaControllerTest extends TestCase
                 ]);
 
         $this->assertDatabaseHas('LOAIDOCGIA', [
-            'id' => $loaiDocGia->id,
+            'MaLoaiDocGia' => $loaiDocGia->MaLoaiDocGia,
             'TenLoaiDocGia' => 'Giảng viên',
         ]);
     }
@@ -112,7 +110,7 @@ class LoaiDocGiaControllerTest extends TestCase
 
         $loaiDocGia = LoaiDocGia::factory()->create(['TenLoaiDocGia' => 'Sinh viên']);
 
-        $response = $this->putJson("/api/loaidocgia/{$loaiDocGia->id}", [
+        $response = $this->putJson("/api/loaidocgia/{$loaiDocGia->MaLoaiDocGia}", [
             'TenLoaiDocGia' => '',
         ]);
 
@@ -132,7 +130,7 @@ class LoaiDocGiaControllerTest extends TestCase
         $loaiDocGia1 = LoaiDocGia::factory()->create(['TenLoaiDocGia' => 'Sinh viên']);
         $loaiDocGia2 = LoaiDocGia::factory()->create(['TenLoaiDocGia' => 'Giảng viên']);
 
-        $response = $this->putJson("/api/loaidocgia/{$loaiDocGia1->id}", [
+        $response = $this->putJson("/api/loaidocgia/{$loaiDocGia1->MaLoaiDocGia}", [
             'TenLoaiDocGia' => 'Giảng viên',
         ]);
 
@@ -151,7 +149,7 @@ class LoaiDocGiaControllerTest extends TestCase
 
         $loaiDocGia = LoaiDocGia::factory()->create(['TenLoaiDocGia' => 'Sinh viên']);
 
-        $response = $this->deleteJson("/api/loaidocgia/{$loaiDocGia->id}");
+        $response = $this->deleteJson("/api/loaidocgia/{$loaiDocGia->MaLoaiDocGia}");
 
         $response->assertStatus(200)
                 ->assertJson([
@@ -160,7 +158,7 @@ class LoaiDocGiaControllerTest extends TestCase
                 ]);
 
         $this->assertDatabaseMissing('LOAIDOCGIA', [
-            'id' => $loaiDocGia->id,
+            'MaLoaiDocGia' => $loaiDocGia->MaLoaiDocGia,
         ]);
     }
 
@@ -172,9 +170,9 @@ class LoaiDocGiaControllerTest extends TestCase
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
         $loaiDocGia = LoaiDocGia::factory()->create(['TenLoaiDocGia' => 'Sinh viên']);
-        $docGia = DocGia::factory()->create(['loaidocgia_id' => $loaiDocGia->id]);
+        $docGia = DocGia::factory()->create(['MaLoaiDocGia' => $loaiDocGia->MaLoaiDocGia]);
 
-        $response = $this->deleteJson("/api/loaidocgia/{$loaiDocGia->id}");
+        $response = $this->deleteJson("/api/loaidocgia/{$loaiDocGia->MaLoaiDocGia}");
 
         $response->assertStatus(400)
                 ->assertJson([
@@ -182,7 +180,7 @@ class LoaiDocGiaControllerTest extends TestCase
                 ]);
 
         $this->assertDatabaseHas('LOAIDOCGIA', [
-            'id' => $loaiDocGia->id,
+            'MaLoaiDocGia' => $loaiDocGia->MaLoaiDocGia,
         ]);
     }
 

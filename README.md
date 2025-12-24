@@ -92,6 +92,8 @@ php artisan key:generate
 php artisan migrate
 
 # Tạo dữ liệu mẫu
+php artisan migrate:fresh
+
 php artisan db:seed
 
 # Chạy tests (tùy chọn)

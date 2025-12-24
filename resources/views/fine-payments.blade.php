@@ -492,12 +492,12 @@
       <h2 id="modalTitle">Thêm phiếu thu mới</h2>
       <form id="paymentForm">
         <div class="form-group">
-          <label for="docgia_id">Độc giả *</label>
-          <select id="docgia_id" required>
+          <label for="MaDocGia">Độc giả *</label>
+          <select id="MaDocGia" required>
             <option value="">-- Chọn độc giả --</option>
             @foreach ($docGias as $docGia)
-              <option value="{{ $docGia->id }}" data-debt="{{ $docGia->TongNo }}">
-                {{ $docGia->HoTen }}
+              <option value="{{ $docGia->MaDocGia }}" data-debt="{{ $docGia->TongNo }}">
+                {{ $docGia->TenDocGia }}
               </option>
             @endforeach
           </select>
@@ -531,27 +531,30 @@
   let payments = [
     @foreach ($phieuThus as $phieuThu)
       {
-        id: {{ $phieuThu->id }},
-        MaPhieu: '{{ addslashes($phieuThu->MaPhieu) }}',
-        docgia_id: {{ $phieuThu->docgia_id }},
-        docGiaName: '{{ addslashes($phieuThu->docGia->HoTen) }}',
-        docGiaCode: '{{ addslashes($phieuThu->docGia->MaDocGia) }}',
-        SoTienNop: {{ $phieuThu->SoTienNop }},
-                        created_at: '{{ $phieuThu->NgayThu ? $phieuThu->NgayThu->format("Y-m-d") : date("Y-m-d") }}',
+        id: '{{ addslashes($phieuThu->MaPhieuPhat) }}',
+        MaPhieuPhat: '{{ addslashes($phieuThu->MaPhieuPhat) }}',
+        MaDocGia: '{{ addslashes($phieuThu->MaDocGia) }}',
+        docGiaName: '{{ addslashes(optional($phieuThu->docGia)->TenDocGia ?? "") }}',
+        docGiaCode: '{{ addslashes(optional($phieuThu->docGia)->MaDocGia ?? "") }}',
+        SoTienNop: {{ (float) $phieuThu->SoTienNop }},
+        created_at: '{{ $phieuThu->NgayThu ? $phieuThu->NgayThu->format("Y-m-d") : date("Y-m-d") }}',
       },
     @endforeach
   ];
 
+
   let docGias = [
     @foreach ($docGias as $docGia)
       {
-        id: {{ $docGia->id }},
-        name: '{{ addslashes($docGia->HoTen) }}',
+        id: '{{ addslashes($docGia->MaDocGia) }}',   
+        name: '{{ addslashes($docGia->TenDocGia) }}',
         code: '{{ addslashes($docGia->MaDocGia) }}',
-        debt: {{ $docGia->TongNo }},
+        debt: {{ (float) $docGia->TongNo }},
       },
     @endforeach
   ];
+
+
 
   let filteredPayments = [...payments];
 
@@ -623,7 +626,7 @@
                         const createdDate = new Date(p.created_at).toLocaleDateString('vi-VN');
         
         tr.innerHTML = `
-          <td><strong>${p.MaPhieu}</strong></td>
+          <td><strong>${p.MaPhieuPhat}</strong></td>
           <td>
             <div><strong>${p.docGiaName}</strong></div>
             <div style="color: #718096; font-size: 0.9rem;">${p.docGiaCode}</div>
@@ -673,12 +676,12 @@
 
   // Cập nhật thông tin nợ khi chọn độc giả
   function updateDebtInfo() {
-    const docgia_id = document.getElementById('docgia_id').value;
+    const MaDocGia = document.getElementById('MaDocGia').value;
     const soTienNop = parseFloat(document.getElementById('SoTienNop').value) || 0;
     const debtInfo = document.getElementById('debtInfo');
     
-    if (docgia_id) {
-      const docGia = docGias.find(d => d.id == docgia_id);
+    if (MaDocGia) {
+      const docGia = docGias.find(d => d.id == MaDocGia);
       if (docGia) {
         const currentDebt = docGia.debt;
         const remainingDebt = Math.max(0, currentDebt - soTienNop);
@@ -711,31 +714,33 @@
   async function savePayment(e) {
     e.preventDefault();
     
-    const docgia_id = document.getElementById('docgia_id').value;
+    const MaDocGia = document.getElementById('MaDocGia').value;
     const SoTienNop = parseFloat(document.getElementById('SoTienNop').value);
     
-    if (!docgia_id || !SoTienNop) {
+    if (!MaDocGia || !SoTienNop) {
       showToast('Vui lòng điền đầy đủ thông tin', 'error');
       return;
     }
 
     try {
-      const data = { docgia_id, SoTienNop };
+      const data = { MaDocGia, SoTienNop };
       
       // Chỉ tạo mới
       const response = await goApi('/api/fine-payments', 'POST', data);
       if (response.success) {
         payments.push({
-          id: response.data.id,
-          MaPhieu: response.data.MaPhieu,
-          docgia_id: response.data.docgia_id,
-          docGiaName: response.data.doc_gia?.HoTen || '',
+          id: response.data.MaPhieuPhat,
+          MaPhieuPhat: response.data.MaPhieuPhat,
+          MaDocGia: response.data.MaDocGia,
+          docGiaName: response.data.doc_gia?.TenDocGia || '',
           docGiaCode: response.data.doc_gia?.MaDocGia || '',
-          SoTienNop: response.data.SoTienNop,
-                          created_at: response.data.NgayThu ? response.data.NgayThu : new Date().toISOString().split('T')[0]
+          SoTienNop: parseFloat(response.data.SoTienNop),
+          created_at: response.data.NgayThu ? response.data.NgayThu : new Date().toISOString().split('T')[0]
         });
-        // Cập nhật nợ của độc giả
-        const docGiaIndex = docGias.findIndex(d => d.id == response.data.docgia_id);
+
+        const docGiaIndex = docGias.findIndex(d => d.id == response.data.MaDocGia);
+if (docGiaIndex !== -1) docGias[docGiaIndex].debt -= SoTienNop;
+
         if (docGiaIndex !== -1) {
           docGias[docGiaIndex].debt -= SoTienNop;
         }
@@ -755,16 +760,14 @@
     const payment = payments.find(p => p.id === id);
     if (!payment) return;
     
-    if (!confirm(`Bạn có chắc chắn xóa phiếu thu "${payment.MaPhieu}"?\nSố tiền ${formatMoney(payment.SoTienNop)} sẽ được hoàn lại cho độc giả.`)) return;
-    
+    if (!confirm(`Bạn có chắc chắn xóa phiếu thu "${payment.MaPhieuPhat}"?\nSố tiền ${formatMoney(payment.SoTienNop)} sẽ được hoàn lại cho độc giả.`)) return;
     try {
       const response = await goApi(`/api/fine-payments/${id}`, 'DELETE');
+
       if (response.success) {
-        // Xóa khỏi mảng payments
         payments = payments.filter(p => p.id !== id);
         
-        // Hoàn lại nợ cho độc giả
-        const docGiaIndex = docGias.findIndex(d => d.id == payment.docgia_id);
+        const docGiaIndex = docGias.findIndex(d => d.id == payment.MaDocGia);
         if (docGiaIndex !== -1) {
           docGias[docGiaIndex].debt += payment.SoTienNop;
         }
@@ -800,7 +803,7 @@
     });
     
     // Sự kiện thay đổi độc giả và số tiền
-    document.getElementById('docgia_id').addEventListener('change', updateDebtInfo);
+    document.getElementById('MaDocGia').addEventListener('change', updateDebtInfo);
     document.getElementById('SoTienNop').addEventListener('input', updateDebtInfo);
     
     renderPayments();

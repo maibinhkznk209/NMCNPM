@@ -2,94 +2,114 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Sach;
-use App\Models\TheLoai;
-use App\Models\TacGia;
+use App\Models\CuonSach;
 use App\Models\NhaXuatBan;
+use App\Models\Sach;
+use App\Models\TacGia;
 use App\Models\TaiKhoan;
+use App\Models\TheLoai;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
 class HomeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Sach::with(['theLoais', 'tacGia', 'nhaXuatBan']);
-        
-        // Tìm kiếm theo từ khóa
+        // Tên sách nằm ở DAUSACH.TenDauSach
+        $query = Sach::with(['dauSach', 'dauSach.theLoai', 'dauSach.tacGias', 'nhaXuatBan']);
+
+        // Search: mã sách / tên đầu sách / thể loại / NXB / tác giả
         if ($request->filled('search')) {
-            $search = $request->get('search');
-            $query->where(function($q) use ($search) {
-                $q->where('TenSach', 'like', "%{$search}%")
-                  ->orWhere('MaSach', 'like', "%{$search}%")
-                  ->orWhereHas('tacGia', function($q) use ($search) {
-                      $q->where('TenTacGia', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('theLoais', function($q) use ($search) {
-                      $q->where('TenTheLoai', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('nhaXuatBan', function($q) use ($search) {
-                      $q->where('TenNXB', 'like', "%{$search}%");
-                  });
+            $search = trim((string) $request->get('search'));
+
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('MaSach', 'like', "%{$search}%")
+                        ->orWhereHas('dauSach', function ($q) use ($search) {
+                            $q->where('TenDauSach', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('dauSach.theLoai', function ($q) use ($search) {
+                            $q->where('TenTheLoai', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('nhaXuatBan', function ($q) use ($search) {
+                            $q->where('TenNXB', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('dauSach.tacGias', function ($q) use ($search) {
+                            $q->where('TenTacGia', 'like', "%{$search}%");
+                        });
+                });
+            }
+        }
+
+        // Filter thể loại
+        if ($request->filled('genre') && $request->get('genre') !== 'all') {
+            $genre = $request->get('genre');
+            $query->whereHas('dauSach', function ($q) use ($genre) {
+                $q->where('MaTheLoai', $genre);
             });
         }
-        
-        // Lọc theo thể loại
-        if ($request->filled('genre')) {
-            $query->whereHas('theLoais', function($q) use ($request) {
-                $q->where('id', $request->get('genre'));
+
+        // Filter tác giả
+        if ($request->filled('author') && $request->get('author') !== 'all') {
+            $author = $request->get('author');
+            $query->whereHas('dauSach.tacGias', function ($q) use ($author) {
+                $q->where('TACGIA.MaTacGia', $author);
             });
         }
-        
-        // Lọc theo tác giả
-        if ($request->filled('author')) {
-            $query->whereHas('tacGia', function($q) use ($request) {
-                $q->where('id', $request->get('author'));
+
+        // Filter NXB
+        if ($request->filled('publisher') && $request->get('publisher') !== 'all') {
+            $publisher = $request->get('publisher');
+            $query->where('MaNXB', $publisher);
+        }
+
+        // Filter tình trạng CUỐN SÁCH (CUONSACH.TinhTrang)
+        if ($request->filled('status') && $request->get('status') !== 'all') {
+            $status = (int) $request->get('status');
+            $query->whereHas('cuonSachs', function ($q) use ($status) {
+                $q->where('TinhTrang', $status);
             });
         }
-        
-        // Lọc theo nhà xuất bản
-        if ($request->filled('publisher')) {
-            $query->whereHas('nhaXuatBan', function($q) use ($request) {
-                $q->where('id', $request->get('publisher'));
-            });
-        }
-        
-        // Lọc theo tình trạng sách
-        if ($request->filled('status')) {
-            $query->where('TinhTrang', $request->get('status'));
-        }
-        
-        // Sắp xếp
-        $sortBy = $request->get('sort', 'TenSach');
+
+        // Sort (chỉ các cột thuộc SACH)
+        $sortBy = $request->get('sort', 'MaSach');
         $sortOrder = $request->get('order', 'asc');
-        
-        // Validate sort order
-        if (!in_array($sortOrder, ['asc', 'desc'])) {
+
+        if (!in_array($sortOrder, ['asc', 'desc'], true)) {
             $sortOrder = 'asc';
         }
-        
+
+        // Không sort theo TinhTrang vì tình trạng ở CUONSACH
+        if (!in_array($sortBy, ['MaSach', 'NamXuatBan', 'TriGia', 'SoLuong'], true)) {
+            $sortBy = 'MaSach';
+        }
+
         $query->orderBy($sortBy, $sortOrder);
-        
-        // Phân trang với appends để giữ các tham số tìm kiếm
+
         $books = $query->paginate(12)->appends($request->query());
-        
-        // Lấy danh sách thể loại, tác giả, nhà xuất bản cho filter
+
         $genres = TheLoai::orderBy('TenTheLoai')->get();
         $authors = TacGia::orderBy('TenTacGia')->get();
         $publishers = NhaXuatBan::orderBy('TenNXB')->get();
-        
-        // Lấy thông tin user và role từ Session
+
         $user = null;
         $userRole = null;
         $isLoggedIn = false;
-        
+
         if (Session::has('user_id')) {
             $isLoggedIn = true;
             $user = TaiKhoan::with('vaiTro')->find(Session::get('user_id'));
             $userRole = Session::get('role');
         }
-        
-        return view('home', compact('books', 'genres', 'authors', 'publishers', 'user', 'userRole', 'isLoggedIn'));
+
+        return view('home', compact(
+            'books',
+            'genres',
+            'authors',
+            'publishers',
+            'user',
+            'userRole',
+            'isLoggedIn'
+        ));
     }
 }

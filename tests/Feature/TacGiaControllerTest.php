@@ -7,14 +7,14 @@ use Tests\TestCase;
 use App\Models\TacGia;
 use App\Models\TaiKhoan;
 use App\Models\VaiTro;
-use App\Models\Sach;
+use App\Models\DauSach;
+use Illuminate\Support\Facades\DB;
 
 class TacGiaControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
-    public function can_create_author()
+    public function test_can_create_author()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
@@ -25,18 +25,17 @@ class TacGiaControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'message' => 'Thêm tác giả thành công'
-                ]);
+            ->assertJson([
+                'success' => true,
+                'message' => 'Thêm tác giả thành công',
+            ]);
 
         $this->assertDatabaseHas('TACGIA', [
             'TenTacGia' => 'Nguyễn Nhật Ánh',
         ]);
     }
 
-    /** @test */
-    public function cannot_create_author_with_missing_name()
+    public function test_cannot_create_author_with_missing_name()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
@@ -47,13 +46,12 @@ class TacGiaControllerTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-                ->assertJson([
-                    'success' => false,
-                ]);
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 
-    /** @test */
-    public function cannot_create_duplicate_author()
+    public function test_cannot_create_duplicate_author()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
@@ -66,13 +64,12 @@ class TacGiaControllerTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-                ->assertJson([
-                    'success' => false,
-                ]);
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 
-    /** @test */
-    public function can_update_author()
+    public function test_can_update_author()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
@@ -80,24 +77,23 @@ class TacGiaControllerTest extends TestCase
 
         $tacGia = TacGia::factory()->create(['TenTacGia' => 'Nguyễn Nhật Ánh']);
 
-        $response = $this->putJson("/api/tacgia/{$tacGia->id}", [
+        $response = $this->putJson("/api/tacgia/{$tacGia->MaTacGia}", [
             'TenTacGia' => 'Tô Hoài',
         ]);
 
         $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'message' => 'Cập nhật tác giả thành công'
-                ]);
+            ->assertJson([
+                'success' => true,
+                'message' => 'Cập nhật tác giả thành công',
+            ]);
 
         $this->assertDatabaseHas('TACGIA', [
-            'id' => $tacGia->id,
+            'MaTacGia' => $tacGia->MaTacGia,
             'TenTacGia' => 'Tô Hoài',
         ]);
     }
 
-    /** @test */
-    public function cannot_update_author_with_missing_name()
+    public function test_cannot_update_author_with_missing_name()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
@@ -105,38 +101,36 @@ class TacGiaControllerTest extends TestCase
 
         $tacGia = TacGia::factory()->create(['TenTacGia' => 'Nguyễn Nhật Ánh']);
 
-        $response = $this->putJson("/api/tacgia/{$tacGia->id}", [
+        $response = $this->putJson("/api/tacgia/{$tacGia->MaTacGia}", [
             'TenTacGia' => '',
         ]);
 
         $response->assertStatus(422)
-                ->assertJson([
-                    'success' => false,
-                ]);
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 
-    /** @test */
-    public function cannot_update_author_to_duplicate_name()
+    public function test_cannot_update_author_to_duplicate_name()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
         $tacGia1 = TacGia::factory()->create(['TenTacGia' => 'Nguyễn Nhật Ánh']);
-        $tacGia2 = TacGia::factory()->create(['TenTacGia' => 'Tô Hoài']);
+        TacGia::factory()->create(['TenTacGia' => 'Tô Hoài']);
 
-        $response = $this->putJson("/api/tacgia/{$tacGia1->id}", [
+        $response = $this->putJson("/api/tacgia/{$tacGia1->MaTacGia}", [
             'TenTacGia' => 'Tô Hoài',
         ]);
 
         $response->assertStatus(422)
-                ->assertJson([
-                    'success' => false,
-                ]);
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 
-    /** @test */
-    public function can_delete_author_without_books()
+    public function test_can_delete_author_without_books()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
@@ -144,43 +138,46 @@ class TacGiaControllerTest extends TestCase
 
         $tacGia = TacGia::factory()->create(['TenTacGia' => 'Nguyễn Nhật Ánh']);
 
-        $response = $this->deleteJson("/api/tacgia/{$tacGia->id}");
+        $response = $this->deleteJson("/api/tacgia/{$tacGia->MaTacGia}");
 
         $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'message' => 'Xóa tác giả thành công'
-                ]);
+            ->assertJson([
+                'success' => true,
+                'message' => 'Xóa tác giả thành công',
+            ]);
 
         $this->assertDatabaseMissing('TACGIA', [
-            'id' => $tacGia->id,
+            'MaTacGia' => $tacGia->MaTacGia,
         ]);
     }
 
-    /** @test */
-    public function cannot_delete_author_with_books()
+    public function test_cannot_delete_author_with_books()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
         $tacGia = TacGia::factory()->create(['TenTacGia' => 'Nguyễn Nhật Ánh']);
-        $sach = Sach::factory()->create(['MaTacGia' => $tacGia->id]);
+        $dauSach = DauSach::factory()->create();
 
-        $response = $this->deleteJson("/api/tacgia/{$tacGia->id}");
+        DB::table('CT_TACGIA')->insert([
+            'MaDauSach' => $dauSach->MaDauSach,
+            'MaTacGia' => $tacGia->MaTacGia,
+        ]);
+
+        $response = $this->deleteJson("/api/tacgia/{$tacGia->MaTacGia}");
 
         $response->assertStatus(400)
-                ->assertJson([
-                    'success' => false,
-                ]);
+            ->assertJson([
+                'success' => false,
+            ]);
 
         $this->assertDatabaseHas('TACGIA', [
-            'id' => $tacGia->id,
+            'MaTacGia' => $tacGia->MaTacGia,
         ]);
     }
 
-    /** @test */
-    public function can_show_authors_page()
+    public function test_can_show_authors_page()
     {
         $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
         $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);

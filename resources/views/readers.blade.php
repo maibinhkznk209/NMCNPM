@@ -313,7 +313,7 @@
                             <td>{{ $docGia->id }}</td>
                             <td>
                                 <div class="reader-info">
-                                    <strong>{{ $docGia->HoTen }}</strong>
+                                    <strong>{{ $docGia->TenDocGia }}</strong>
                                     <small>📧 {{ $docGia->Email }}</small>
                                     <small>📍 {{ Str::limit($docGia->DiaChi, 50) }}</small>
                                 </div>
@@ -377,16 +377,16 @@
             <form action="{{ route('readers.store') }}" method="POST" id="addReaderForm" onsubmit="return validateAddForm()">
                 @csrf
                 <div class="form-group">
-                    <label for="HoTen">Họ và tên *</label>
-                    <input type="text" id="HoTen" name="HoTen" required>
+                    <label for="TenDocGia">Họ và tên *</label>
+                    <input type="text" id="TenDocGia" name="TenDocGia" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="loaidocgia_id">Loại độc giả *</label>
-                    <select id="loaidocgia_id" name="loaidocgia_id" required>
+                    <label for="MaLoaiDocGia">Loại độc giả *</label>
+                    <select id="MaLoaiDocGia" name="MaLoaiDocGia" required>
                         <option value="">Chọn loại độc giả</option>
                         @foreach($loaiDocGias as $loai)
-                            <option value="{{ $loai->id }}">{{ $loai->TenLoaiDocGia }}</option>
+                            <option value="{{ $loai->MaLoaiDocGia }}">{{ $loai->TenLoaiDocGia }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -486,16 +486,16 @@
                 @csrf
                 @method('PUT')
                 <div class="form-group">
-                    <label for="editHoTen">Họ và tên *</label>
-                    <input type="text" id="editHoTen" name="HoTen" required>
+                    <label for="editTenDocGia">Họ và tên *</label>
+                    <input type="text" id="editTenDocGia" name="TenDocGia" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="editLoaidocgia_id">Loại độc giả *</label>
-                    <select id="editLoaidocgia_id" name="loaidocgia_id" required>
+                    <label for="editMaLoaiDocGia">Loại độc giả *</label>
+                    <select id="editMaLoaiDocGia" name="MaLoaiDocGia" required>
                         <option value="">Chọn loại độc giả</option>
                         @foreach($loaiDocGias as $loai)
-                            <option value="{{ $loai->id }}">{{ $loai->TenLoaiDocGia }}</option>
+                            <option value="{{ $loai->MaLoaiDocGia }}">{{ $loai->TenLoaiDocGia }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -844,7 +844,7 @@
         
         // Focus on first input
         setTimeout(() => {
-            document.getElementById('HoTen').focus();
+            document.getElementById('TenDocGia').focus();
         }, 100);
     };
 
@@ -871,8 +871,8 @@
             .then(data => {
                 if (data.success) {
                     const reader = data.data;
-                    document.getElementById('editHoTen').value = reader.HoTen;
-                    document.getElementById('editLoaidocgia_id').value = reader.loaidocgia_id;
+                    document.getElementById('editTenDocGia').value = reader.TenDocGia;
+                    document.getElementById('editMaLoaiDocGia').value = reader.MaLoaiDocGia;
                     
                     // Convert dates from database format (yyyy-mm-dd) to display format (dd/mm/yyyy)
                     document.getElementById('editNgaySinh').value = convertFromDbFormat(reader.NgaySinh);
@@ -957,7 +957,7 @@
             let isValid = true;
             
             // Validate required text fields
-            const textFields = ['HoTen', 'loaidocgia_id', 'Email', 'DiaChi'];
+            const textFields = ['TenDocGia', 'MaLoaiDocGia', 'Email', 'DiaChi'];
             textFields.forEach(field => {
                 const element = document.getElementById(field);
                 if (!element || !element.value.trim()) {
@@ -1024,7 +1024,7 @@
         let isValid = true;
         
         // Validate required text fields
-        const textFields = ['editHoTen', 'editLoaidocgia_id', 'editEmail', 'editDiaChi'];
+        const textFields = ['editTenDocGia', 'editMaLoaiDocGia', 'editEmail', 'editDiaChi'];
         textFields.forEach(field => {
             const element = document.getElementById(field);
             if (!element || !element.value.trim()) {

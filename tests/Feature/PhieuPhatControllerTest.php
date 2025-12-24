@@ -3,13 +3,13 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
-use App\Models\PhieuThuTienPhat;
+use App\Models\PhieuPhat;
 use App\Models\DocGia;
 use App\Models\TaiKhoan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 
-class PhieuThuTienPhatControllerTest extends TestCase
+class PhieuPhatControllerTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
@@ -20,12 +20,10 @@ class PhieuThuTienPhatControllerTest extends TestCase
     {
         parent::setUp();
         
-        // Tạo vai trò trước
         $vaiTro = \App\Models\VaiTro::factory()->create([
             'VaiTro' => 'Admin'
         ]);
         
-        // Tạo loại độc giả trước
         $loaiDocGia = \App\Models\LoaiDocGia::factory()->create([
             'TenLoaiDocGia' => 'Sinh viên'
         ]);
@@ -43,7 +41,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
         // Tạo độc giả với nợ
         $this->docGia = DocGia::factory()->create([
             'TongNo' => 100000,
-            'loaidocgia_id' => $loaiDocGia->id
+            'MaLoaiDocGia' => $loaiDocGia->MaLoaiDocGia
         ]);
         
         // Bypass middleware cho tất cả test
@@ -54,7 +52,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function can_create_fine_payment()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 50000
         ];
 
@@ -66,8 +64,8 @@ class PhieuThuTienPhatControllerTest extends TestCase
             'message' => 'Tạo phiếu thu tiền phạt thành công!'
         ]);
 
-        $this->assertDatabaseHas('PHIEUTHUTIENPHAT', [
-            'docgia_id' => $this->docGia->id,
+        $this->assertDatabaseHas('PhieuPhat', [
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 50000
         ]);
 
@@ -86,14 +84,14 @@ class PhieuThuTienPhatControllerTest extends TestCase
         $response = $this->postJson('/api/fine-payments', $paymentData);
 
         $response->assertStatus(422)
-                ->assertJsonValidationErrors(['docgia_id']);
+                ->assertJsonValidationErrors(['MaDocGia']);
     }
 
     /** @test */
     public function cannot_create_fine_payment_without_amount()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id
+            'MaDocGia' => $this->docGia->MaDocGia
         ];
 
         $response = $this->postJson('/api/fine-payments', $paymentData);
@@ -106,21 +104,21 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function cannot_create_fine_payment_with_invalid_reader()
     {
         $paymentData = [
-            'docgia_id' => 99999,
+            'MaDocGia' => 99999,
             'SoTienNop' => 50000
         ];
 
         $response = $this->postJson('/api/fine-payments', $paymentData);
 
         $response->assertStatus(422)
-                ->assertJsonValidationErrors(['docgia_id']);
+                ->assertJsonValidationErrors(['MaDocGia']);
     }
 
     /** @test */
     public function cannot_create_fine_payment_with_negative_amount()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => -1000
         ];
 
@@ -134,7 +132,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function cannot_create_fine_payment_with_zero_amount()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 0
         ];
 
@@ -147,7 +145,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function cannot_create_fine_payment_with_amount_exceeding_debt()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 150000 // Vượt quá tổng nợ 100000
         ];
 
@@ -164,7 +162,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function cannot_create_fine_payment_with_non_numeric_amount()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 'abc'
         ];
 
@@ -178,7 +176,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function can_create_fine_payment_with_exact_debt_amount()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 100000 // Đúng bằng tổng nợ
         ];
 
@@ -198,7 +196,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     /** @test */
     public function can_get_fine_payments_list()
     {
-        PhieuThuTienPhat::factory()->count(3)->create();
+        PhieuPhat::factory()->count(3)->create();
 
         $response = $this->getJson('/api/fine-payments');
 
@@ -208,9 +206,9 @@ class PhieuThuTienPhatControllerTest extends TestCase
     /** @test */
     public function can_get_specific_fine_payment()
     {
-        $payment = PhieuThuTienPhat::factory()->create();
+        $payment = PhieuPhat::factory()->create();
 
-        $response = $this->getJson("/api/fine-payments/{$payment->id}");
+        $response = $this->getJson("/api/fine-payments/{$payment->MaPhieuPhat}");
 
         $response->assertStatus(200)
                 ->assertJson([
@@ -229,15 +227,15 @@ class PhieuThuTienPhatControllerTest extends TestCase
     /** @test */
     public function can_delete_fine_payment()
     {
-        $payment = PhieuThuTienPhat::factory()->create([
-            'docgia_id' => $this->docGia->id,
+        $payment = PhieuPhat::factory()->create([
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 50000
         ]);
 
         // Cập nhật tổng nợ của độc giả
         $this->docGia->update(['TongNo' => 50000]);
 
-        $response = $this->deleteJson("/api/fine-payments/{$payment->id}");
+        $response = $this->deleteJson("/api/fine-payments/{$payment->MaPhieuPhat}");
 
         $this->assertTrue(in_array($response->status(), [200, 500]));
     }
@@ -253,7 +251,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     /** @test */
     public function can_get_reader_debt_information()
     {
-        $response = $this->getJson("/api/fine-payments/reader-debt/{$this->docGia->id}");
+        $response = $this->getJson("/api/fine-payments/reader-debt/{$this->docGia->MaDocGia}");
 
         $response->assertStatus(200)
                 ->assertJson([
@@ -278,7 +276,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     {
         // Tạo phiếu thu đầu tiên
         $paymentData1 = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 30000
         ];
 
@@ -287,7 +285,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
 
         // Tạo phiếu thu thứ hai
         $paymentData2 = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 40000
         ];
 
@@ -303,7 +301,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function can_create_payment_with_decimal_amount()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 50000.50
         ];
 
@@ -311,8 +309,8 @@ class PhieuThuTienPhatControllerTest extends TestCase
 
         $this->assertTrue(in_array($response->status(), [200, 201]));
 
-        $this->assertDatabaseHas('PHIEUTHUTIENPHAT', [
-            'docgia_id' => $this->docGia->id,
+        $this->assertDatabaseHas('PhieuPhat', [
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 50000.50
         ]);
     }
@@ -323,7 +321,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
         $docGia = DocGia::factory()->create(['TongNo' => 1000000]);
         
         $paymentData = [
-            'docgia_id' => $docGia->id,
+            'MaDocGia' => $docGia->MaDocGia,
             'SoTienNop' => 999999.99
         ];
 
@@ -338,7 +336,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
         $docGia = DocGia::factory()->create(['TongNo' => 1000]);
         
         $paymentData = [
-            'docgia_id' => $docGia->id,
+            'MaDocGia' => $docGia->MaDocGia,
             'SoTienNop' => 1.00
         ];
 
@@ -353,7 +351,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
         $docGia = DocGia::factory()->create(['TongNo' => 0]);
         
         $paymentData = [
-            'docgia_id' => $docGia->id,
+            'MaDocGia' => $docGia->MaDocGia,
             'SoTienNop' => 1000
         ];
 
@@ -372,7 +370,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
         $docGia = DocGia::factory()->create(['TongNo' => -5000]);
         
         $paymentData = [
-            'docgia_id' => $docGia->id,
+            'MaDocGia' => $docGia->MaDocGia,
             'SoTienNop' => 1000
         ];
 
@@ -384,15 +382,15 @@ class PhieuThuTienPhatControllerTest extends TestCase
     /** @test */
     public function can_delete_payment_and_restore_reader_debt()
     {
-        $payment = PhieuThuTienPhat::factory()->create([
-            'docgia_id' => $this->docGia->id,
+        $payment = PhieuPhat::factory()->create([
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 50000
         ]);
 
         // Cập nhật tổng nợ của độc giả sau khi tạo phiếu thu
         $this->docGia->update(['TongNo' => 50000]);
 
-        $response = $this->deleteJson("/api/fine-payments/{$payment->id}");
+        $response = $this->deleteJson("/api/fine-payments/{$payment->MaPhieuPhat}");
 
         $this->assertTrue(in_array($response->status(), [200, 500]));
 
@@ -402,11 +400,11 @@ class PhieuThuTienPhatControllerTest extends TestCase
     /** @test */
     public function can_get_payment_with_reader_information()
     {
-        $payment = PhieuThuTienPhat::factory()->create([
-            'docgia_id' => $this->docGia->id
+        $payment = PhieuPhat::factory()->create([
+            'MaDocGia' => $this->docGia->MaDocGia
         ]);
 
-        $response = $this->getJson("/api/fine-payments/{$payment->id}");
+        $response = $this->getJson("/api/fine-payments/{$payment->MaPhieuPhat}");
 
         $response->assertStatus(200)
                 ->assertJson([
@@ -418,7 +416,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function can_create_payment_with_string_numeric_amount()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => '50000'
         ];
 
@@ -431,7 +429,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function cannot_create_payment_with_empty_string_amount()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => ''
         ];
 
@@ -445,7 +443,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function cannot_create_payment_with_null_amount()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => null
         ];
 
@@ -459,7 +457,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function can_create_payment_with_maximum_decimal_places()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 50000.99
         ];
 
@@ -474,7 +472,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
         $docGia = DocGia::factory()->create(['TongNo' => 1]);
         
         $paymentData = [
-            'docgia_id' => $docGia->id,
+            'MaDocGia' => $docGia->MaDocGia,
             'SoTienNop' => 0.01
         ];
 
@@ -489,7 +487,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
         $docGia = DocGia::factory()->create(['TongNo' => 100000.50]);
         
         $paymentData = [
-            'docgia_id' => $docGia->id,
+            'MaDocGia' => $docGia->MaDocGia,
             'SoTienNop' => 100000.50
         ];
 
@@ -506,7 +504,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function can_create_payment_with_partial_debt_amount()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => 75000 // Một phần của tổng nợ 100000
         ];
 
@@ -525,7 +523,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
         $docGia = DocGia::factory()->create(['TongNo' => 999999999.99]);
         
         $paymentData = [
-            'docgia_id' => $docGia->id,
+            'MaDocGia' => $docGia->MaDocGia,
             'SoTienNop' => 500000000
         ];
 
@@ -538,7 +536,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
     public function can_create_payment_with_special_characters_in_amount()
     {
         $paymentData = [
-            'docgia_id' => $this->docGia->id,
+            'MaDocGia' => $this->docGia->MaDocGia,
             'SoTienNop' => '50,000.00'
         ];
 
@@ -554,7 +552,7 @@ class PhieuThuTienPhatControllerTest extends TestCase
         $docGia = DocGia::factory()->create(['TongNo' => 0.01]);
         
         $paymentData = [
-            'docgia_id' => $docGia->id,
+            'MaDocGia' => $docGia->MaDocGia,
             'SoTienNop' => 0.01
         ];
 

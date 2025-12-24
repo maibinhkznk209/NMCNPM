@@ -13,15 +13,6 @@ class NhaXuatBanControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        
-        // Force sử dụng SQLite in-memory cho test
-        config(['database.default' => 'sqlite']);
-        config(['database.connections.sqlite.database' => ':memory:']);
-    }
-
     /** @test */
     public function can_create_publisher()
     {
@@ -89,7 +80,7 @@ class NhaXuatBanControllerTest extends TestCase
 
         $nhaXuatBan = NhaXuatBan::factory()->create(['TenNXB' => 'NXB Trẻ']);
 
-        $response = $this->putJson("/api/nhaxuatban/{$nhaXuatBan->id}", [
+        $response = $this->putJson("/api/nhaxuatban/{$nhaXuatBan->MaNXB}", [
             'TenNXB' => 'NXB Kim Đồng',
         ]);
 
@@ -100,7 +91,7 @@ class NhaXuatBanControllerTest extends TestCase
                 ]);
 
         $this->assertDatabaseHas('NHAXUATBAN', [
-            'id' => $nhaXuatBan->id,
+            'MaNXB' => $nhaXuatBan->MaNXB,
             'TenNXB' => 'NXB Kim Đồng',
         ]);
     }
@@ -114,7 +105,7 @@ class NhaXuatBanControllerTest extends TestCase
 
         $nhaXuatBan = NhaXuatBan::factory()->create(['TenNXB' => 'NXB Trẻ']);
 
-        $response = $this->putJson("/api/nhaxuatban/{$nhaXuatBan->id}", [
+        $response = $this->putJson("/api/nhaxuatban/{$nhaXuatBan->MaNXB}", [
             'TenNXB' => '',
         ]);
 
@@ -134,7 +125,7 @@ class NhaXuatBanControllerTest extends TestCase
         $nhaXuatBan1 = NhaXuatBan::factory()->create(['TenNXB' => 'NXB Trẻ']);
         $nhaXuatBan2 = NhaXuatBan::factory()->create(['TenNXB' => 'NXB Kim Đồng']);
 
-        $response = $this->putJson("/api/nhaxuatban/{$nhaXuatBan1->id}", [
+        $response = $this->putJson("/api/nhaxuatban/{$nhaXuatBan1->MaNXB}", [
             'TenNXB' => 'NXB Kim Đồng',
         ]);
 
@@ -153,7 +144,7 @@ class NhaXuatBanControllerTest extends TestCase
 
         $nhaXuatBan = NhaXuatBan::factory()->create(['TenNXB' => 'NXB Trẻ']);
 
-        $response = $this->deleteJson("/api/nhaxuatban/{$nhaXuatBan->id}");
+        $response = $this->deleteJson("/api/nhaxuatban/{$nhaXuatBan->MaNXB}");
 
         $response->assertStatus(200)
                 ->assertJson([
@@ -162,7 +153,7 @@ class NhaXuatBanControllerTest extends TestCase
                 ]);
 
         $this->assertDatabaseMissing('NHAXUATBAN', [
-            'id' => $nhaXuatBan->id,
+            'MaNXB' => $nhaXuatBan->MaNXB,
         ]);
     }
 
@@ -174,9 +165,9 @@ class NhaXuatBanControllerTest extends TestCase
         session(['user_id' => $user->id, 'role' => 'Thủ thư']);
 
         $nhaXuatBan = NhaXuatBan::factory()->create(['TenNXB' => 'NXB Trẻ']);
-        $sach = Sach::factory()->create(['MaNhaXuatBan' => $nhaXuatBan->id]);
+        $sach = Sach::factory()->create(['MaNXB' => $nhaXuatBan->MaNXB]);
 
-        $response = $this->deleteJson("/api/nhaxuatban/{$nhaXuatBan->id}");
+        $response = $this->deleteJson("/api/nhaxuatban/{$nhaXuatBan->MaNXB}");
 
         $response->assertStatus(400)
                 ->assertJson([
@@ -184,7 +175,7 @@ class NhaXuatBanControllerTest extends TestCase
                 ]);
 
         $this->assertDatabaseHas('NHAXUATBAN', [
-            'id' => $nhaXuatBan->id,
+            'MaNXB' => $nhaXuatBan->MaNXB,
         ]);
     }
 

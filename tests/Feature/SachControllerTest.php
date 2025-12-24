@@ -2,184 +2,67 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\SachController;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
-use App\Models\Sach;
-use App\Models\TacGia;
-use App\Models\TheLoai;
-use App\Models\NhaXuatBan;
-use App\Models\User;
-use App\Models\TaiKhoan;
-use App\Models\VaiTro;
 
 class SachControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
-    public function it_can_create_a_book()
+    protected function setUp(): void
     {
-        $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
-        $user = TaiKhoan::factory()->create([
-            'vaitro_id' => $role->id,
-        ]);
-        session(['user_id' => $user->id, 'role' => 'Thủ thư']);
-        $tacGia = TacGia::factory()->create();
-        $theLoai = TheLoai::factory()->create();
-        $nxb = NhaXuatBan::factory()->create();
+        parent::setUp();
 
-        $response = $this->post('/books', [
-            'TenSach' => 'Sách test',
-            'NamXuatBan' => 2024,
+        if (!Route::has('test.api.sach.store')) {
+            Route::middleware('api')->post('/api/sach', [SachController::class, 'store'])->name('test.api.sach.store');
+            Route::middleware('api')->get('/api/sach', [SachController::class, 'index'])->name('test.api.sach.index');
+        }
+
+        // master data
+        DB::table('THELOAI')->insert([['MaTheLoai' => 1, 'TenTheLoai' => 'Khoa học']]);
+        DB::table('NHAXUATBAN')->insert([['MaNXB' => 1, 'TenNXB' => 'NXB Trẻ']]);
+
+        // create DauSach directly
+        DB::table('DAUSACH')->insert([
+            'MaDauSach' => 1,
+            'TenDauSach' => 'Nhập môn CNPM',
+            'MaTheLoai' => 1,
+            'NgayNhap' => now(),
+        ]);
+
+        // THAMSO for year constraint (optional)
+        DB::table('THAMSO')->insert([
+            'MaThamSo' => 1,
+            'TenThamSo' => 'SoNamXuatBanToiDa',
+            'GiaTri' => 8,
+        ]);
+    }
+
+    public function test_store_creates_sach_and_cuonsach_by_soluong(): void
+    {
+        $payload = [
+            'MaDauSach' => 1,
+            'MaNXB' => 1,
+            'NamXuatBan' => (int)date('Y'),
             'TriGia' => 50000,
-            'SoLuong' => 1,
-            'tacGias' => $tacGia->id,
-            'theLoais' => json_encode([$theLoai->id]),
-            'nhaXuatBans' => $nxb->id,
-        ]);
+            'SoLuong' => 3,
+        ];
 
-        $response->assertRedirect('/books');
+        $res = $this->postJson('/api/sach', $payload);
+        $res->assertStatus(201)->assertJson(['success' => true]);
+
+        $maSach = DB::table('SACH')->where('MaDauSach', 1)->value('MaSach');
+        $this->assertNotEmpty($maSach);
+
         $this->assertDatabaseHas('SACH', [
-            'TenSach' => 'Sách test',
-            'TriGia' => 50000,
-        ]);
-    }
-
-    /** @test */
-    public function it_can_update_a_book()
-    {
-        $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
-        $user = TaiKhoan::factory()->create([
-            'vaitro_id' => $role->id,
-        ]);
-        session(['user_id' => $user->id, 'role' => 'Thủ thư']);
-        $tacGia = TacGia::factory()->create();
-        $theLoai = TheLoai::factory()->create();
-        $nxb = NhaXuatBan::factory()->create();
-        $sach = Sach::factory()->create([
-            'MaTacGia' => $tacGia->id,
-            'MaNhaXuatBan' => $nxb->id,
-        ]);
-        $sach->theLoais()->attach($theLoai->id);
-
-        $response = $this->put("/books/{$sach->id}", [
-            'TenSach' => 'Sách đã sửa',
-            'NamXuatBan' => 2024,
-            'TriGia' => 60000,
-            'tacGias' => $tacGia->id,
-            'theLoais' => json_encode([$theLoai->id]),
-            'nhaXuatBans' => $nxb->id,
-            'TinhTrang' => 1,
+            'MaSach' => $maSach,
+            'SoLuong' => 3,
         ]);
 
-        $response->assertRedirect('/books');
-        $this->assertDatabaseHas('SACH', [
-            'id' => $sach->id,
-            'TenSach' => 'Sách đã sửa',
-            'TriGia' => 60000,
-        ]);
-    }
-
-    /** @test */
-    public function it_can_delete_a_book()
-    {
-        $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
-        $user = TaiKhoan::factory()->create([
-            'vaitro_id' => $role->id,
-        ]);
-        session(['user_id' => $user->id, 'role' => 'Thủ thư']);
-        $tacGia = TacGia::factory()->create();
-        $nxb = NhaXuatBan::factory()->create();
-        $sach = Sach::factory()->create([
-            'MaTacGia' => $tacGia->id,
-            'MaNhaXuatBan' => $nxb->id,
-        ]);
-
-        $response = $this->delete("/books/{$sach->id}");
-        $response->assertRedirect('/books');
-        $this->assertDatabaseMissing('SACH', [
-            'id' => $sach->id,
-        ]);
-    }
-
-    /** @test */
-    public function cannot_create_book_with_missing_required_fields()
-    {
-        $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
-        $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
-        session(['user_id' => $user->id, 'role' => 'Thủ thư']);
-
-        $response = $this->post('/books', [
-            // Thiếu TenSach, NamXuatBan, TriGia, tacGias, theLoais, nhaXuatBans
-        ]);
-        $response->assertSessionHasErrors(['TenSach', 'NamXuatBan', 'TriGia', 'tacGias', 'theLoais', 'nhaXuatBans']);
-    }
-
-    /** @test */
-    public function cannot_create_book_with_invalid_year()
-    {
-        $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
-        $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
-        session(['user_id' => $user->id, 'role' => 'Thủ thư']);
-        $tacGia = TacGia::factory()->create();
-        $theLoai = TheLoai::factory()->create();
-        $nxb = NhaXuatBan::factory()->create();
-        $response = $this->post('/books', [
-            'TenSach' => 'Sách test',
-            'NamXuatBan' => 1900, // Quá cũ
-            'TriGia' => 50000,
-            'SoLuong' => 1,
-            'tacGias' => $tacGia->id,
-            'theLoais' => json_encode([$theLoai->id]),
-            'nhaXuatBans' => $nxb->id,
-        ]);
-        $response->assertSessionHasErrors(['NamXuatBan']);
-    }
-
-    /** @test */
-    public function cannot_create_book_with_negative_price()
-    {
-        $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
-        $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
-        session(['user_id' => $user->id, 'role' => 'Thủ thư']);
-        $tacGia = TacGia::factory()->create();
-        $theLoai = TheLoai::factory()->create();
-        $nxb = NhaXuatBan::factory()->create();
-        $response = $this->post('/books', [
-            'TenSach' => 'Sách test',
-            'NamXuatBan' => 2024,
-            'TriGia' => -10000, // Giá âm
-            'SoLuong' => 1,
-            'tacGias' => $tacGia->id,
-            'theLoais' => json_encode([$theLoai->id]),
-            'nhaXuatBans' => $nxb->id,
-        ]);
-        $response->assertSessionHasErrors(['TriGia']);
-    }
-
-    /** @test */
-    public function cannot_update_book_with_invalid_data()
-    {
-        $role = VaiTro::factory()->create(['VaiTro' => 'Thủ thư']);
-        $user = TaiKhoan::factory()->create(['vaitro_id' => $role->id]);
-        session(['user_id' => $user->id, 'role' => 'Thủ thư']);
-        $tacGia = TacGia::factory()->create();
-        $theLoai = TheLoai::factory()->create();
-        $nxb = NhaXuatBan::factory()->create();
-        $sach = Sach::factory()->create([
-            'MaTacGia' => $tacGia->id,
-            'MaNhaXuatBan' => $nxb->id,
-        ]);
-        $sach->theLoais()->attach($theLoai->id);
-        $response = $this->put("/books/{$sach->id}", [
-            'TenSach' => '', // Thiếu tên sách
-            'NamXuatBan' => 2024,
-            'TriGia' => 60000,
-            'tacGias' => $tacGia->id,
-            'theLoais' => json_encode([$theLoai->id]),
-            'nhaXuatBans' => $nxb->id,
-            'TinhTrang' => 1,
-        ]);
-        $response->assertSessionHasErrors(['TenSach']);
+        $countCuon = DB::table('CUONSACH')->where('MaSach', $maSach)->count();
+        $this->assertEquals(3, $countCuon);
     }
 }

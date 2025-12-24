@@ -490,7 +490,7 @@
   let authors = [
     @foreach ($tacGias as $tacGia)
       {
-        id: {{ $tacGia->id }},
+        id: {{ $tacGia->MaTacGia }},
         name: '{{ addslashes($tacGia->TenTacGia) }}',
         dateAdded: '{{ date("Y-m-d") }}',
       },

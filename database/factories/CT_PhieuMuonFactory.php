@@ -2,15 +2,15 @@
 
 namespace Database\Factories;
 
-use App\Models\ChiTietPhieuMuon;
+use App\Models\CT_PHIEUMUON;
 use App\Models\PhieuMuon;
 use App\Models\Sach;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Carbon\Carbon;
 
-class ChiTietPhieuMuonFactory extends Factory
+class CT_PHIEUMUONFactory extends Factory
 {
-    protected $model = ChiTietPhieuMuon::class;
+    protected $model = CT_PHIEUMUON::class;
 
     public function definition()
     {
