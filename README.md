@@ -10,7 +10,6 @@ Hệ thống quản lý thư viện được xây dựng bằng Laravel framewor
 - **Hệ Thống Mượn Trả**: Theo dõi việc mượn và trả sách
 - **Quản Lý Tiền Phạt**: Xử lý tiền phạt quá hạn và thanh toán
 - **Báo Cáo**: Tạo các báo cáo và thống kê đa dạng
-- **Hỗ Trợ Đa Ngôn Ngữ**: Giao diện tiếng Việt
 
 ## Yêu Cầu Hệ Thống
 
