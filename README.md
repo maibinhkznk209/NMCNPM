@@ -89,10 +89,9 @@ exit;
 php artisan key:generate
 
 # Tạo các bảng CSDL
-php artisan migrate
+php artisan migrate:fresh
 
 # Tạo dữ liệu mẫu
-php artisan migrate:fresh
 
 php artisan db:seed
 
