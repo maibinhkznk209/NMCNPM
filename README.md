@@ -38,8 +38,8 @@ Hệ thống quản lý thư viện được xây dựng bằng Laravel framewor
 
 #### Bước 1: Clone Repository
 ```bash
-git clone https://github.com/annx-uit/LibraryMangement
-cd LibraryMangement
+git https://github.com/maibinhkznk209/NMCNPM
+cd NMCNPM
 ```
 
 #### Bước 2: Cài Đặt Dependencies
@@ -121,7 +121,7 @@ http://127.0.0.1:8000/login
 ## Cấu Trúc Dự Án
 
 ```
-LibraryMangement/
+NMCNPM/
 ├── app/
 │   ├── Http/Controllers/    # Controllers của ứng dụng
 │   ├── Models/             # Eloquent models
