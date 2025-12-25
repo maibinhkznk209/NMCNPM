@@ -1658,7 +1658,7 @@
   function showReadersDropdown(searchTerm) {
     const dropdown = document.getElementById('readerDropdown');
     const filteredReaders = allReaders.filter(reader => {
-      const isNotSelected = !selectedReader || selectedReader.id !== reader.id;
+      const isNotSelected = !selectedReader || selectedReader.MaDocGia !== reader.MaDocGia;
       const matchesSearch = reader.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           reader.email.toLowerCase().includes(searchTerm.toLowerCase());
       return isNotSelected && matchesSearch;
@@ -1668,7 +1668,7 @@
       dropdown.innerHTML = '<div class="no-results">Không tìm thấy độc giả phù hợp</div>';
     } else {
       dropdown.innerHTML = filteredReaders.map(reader => `
-        <div class="dropdown-item" onclick="selectReader(${reader.id})">
+        <div class="dropdown-item" onclick="selectReader(${reader.MaDocGia})">
           <div class="item-title">${reader.name}</div>
           <div class="item-subtitle">${reader.email || 'Chưa có email'}</div>
         </div>
@@ -1719,7 +1719,7 @@
         </div>
       `;
       
-      hiddenInput.value = selectedReader.id;
+      hiddenInput.value = selectedReader.MaDocGia;
     }
   }
 
@@ -1780,12 +1780,12 @@
       dropdown.innerHTML = '<div class="no-results">Không tìm thấy sách phù hợp</div>';
     } else {
       dropdown.innerHTML = filteredBooks.map(book => {
-        const isSelected = selectedBooks.find(sb => sb.id === book.id);
+        const isSelected = selectedBooks.find(sb => sb.id === book.MaSach);
         const bookTitle = book.title || book.TenSach || 'Không rõ tên sách';
         const bookAuthor = book.author || (book.tac_gia ? book.tac_gia.TenTacGia : '') || 'Chưa có tác giả';
         
         return `
-          <div class="dropdown-item ${isSelected ? 'selected' : ''}" onclick="selectBook(${book.id})">
+          <div class="dropdown-item ${isSelected ? 'selected' : ''}" onclick="selectBook(${book.MaSach})">
             <div class="item-title">${bookTitle} ${isSelected ? '<span style="color: #4299e1; font-weight: bold;">(Đã chọn)</span>' : ''}</div>
             <div class="item-subtitle">${bookAuthor}</div>
         </div>
@@ -1832,7 +1832,7 @@
   }
 
   function removeBook(bookId) {
-    selectedBooks = selectedBooks.filter(book => book.id !== bookId);
+    selectedBooks = selectedBooks.filter(book => book.MaSach !== bookId);
     updateBooksDisplay();
   }
 
@@ -1856,12 +1856,12 @@
       const booksHTML = selectedBooks.map(book => `
         <div class="selected-item">
           <span>${book.title || book.TenSach || 'Không rõ tên sách'}</span>
-          <span class="remove" onclick="removeBook(${book.id})">&times;</span>
+          <span class="remove" onclick="removeBook(${book.MaSach})">&times;</span>
         </div>
       `).join('');
       
       container.innerHTML = booksHTML;
-      hiddenInput.value = selectedBooks.map(book => book.id).join(',');
+      hiddenInput.value = selectedBooks.map(book => book.MaSach).join(',');
       
       console.log('Books HTML generated:', booksHTML);
       console.log('Container innerHTML after:', container.innerHTML);
@@ -2026,11 +2026,9 @@
     const statusFilter = document.getElementById('statusFilter').value;
     
     filteredRecords = borrowRecords.filter(record => {
-      // Get reader name and email from new API structure
       const readerName = record.reader ? record.reader.name : (record.reader_name || '');
       const readerEmail = record.reader ? record.reader.email : (record.reader_email || '');
       
-      // Get book titles and authors from new API structure
       let bookTitles = '';
       let bookAuthors = '';
       
@@ -2123,8 +2121,8 @@
     
     // Set reader - use new API structure
     let readerId = null;
-    if (record.reader && record.reader.id) {
-      readerId = record.reader.id;
+    if (record.reader && record.reader.MaDocGia) {
+      readerId = record.reader.MaDocGia;
         } else if (record.docgia_id) {
           readerId = record.docgia_id; // fallback to old structure
     }
@@ -2133,7 +2131,7 @@
       const reader = allReaders.find(r => r.id == readerId);
       if (reader) {
         selectedReader = reader;
-        selectReader(reader.id);
+        selectReader(reader.MaDocGia);
       }
         }
       }
@@ -2725,8 +2723,8 @@
     
     try {
       const formData = {
-        docgia_id: selectedReader.id,
-        sach_ids: selectedBooks.map(book => book.id),
+        MaDocGia: selectedReader.MaDocGia,
+        MaSach: selectedBooks.map(book => book.MaSach),
         borrow_date: borrowDate
       };
       
@@ -2782,7 +2780,7 @@
     borrowInfo.innerHTML = `
       <div class="detail-info-row">
         <span class="detail-info-label">📋 Mã phiếu:</span>
-        <span class="detail-info-value">${record.ma_phieu || record.code || 'N/A'}</span>
+        <span class="detail-info-value">${record.MaPhieuMuon || record.code || 'N/A'}</span>
       </div>
       <div class="detail-info-row">
         <span class="detail-info-label">👤 Độc giả:</span>
@@ -2871,14 +2869,14 @@
             ${bookValue.toLocaleString('vi-VN')} VNĐ
           </td>
           <td style="text-align: center;">
-            <select class="book-status-select" id="book-status-${book.id}" onchange="updateBookStatus(${book.id})">
+            <select class="book-status-select" id="book-status-${book.MaSach}" onchange="updateBookStatus(${book.MaSach})">
               <option value="1">📖 Tốt</option>
               <option value="3">⚠️ Hỏng</option>
               <option value="4">❌ Mất</option>
             </select>
           </td>
           <td style="text-align: left; font-size: 12px; color: #718096;">
-            <div id="fine-details-${book.id}">Chưa tính phạt</div>
+            <div id="fine-details-${book.MaSach}">Chưa tính phạt</div>
           </td>
         </tr>
       `;
