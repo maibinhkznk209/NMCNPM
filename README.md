@@ -104,12 +104,7 @@ php artisan test
 php artisan serve
 ```
 
-Ứng dụng sẽ khởi động và có thể truy cập tại: **http://127.0.0.1:8000**
-
-## Thông Tin Truy Cập
-
-### URL Đăng Nhập
-http://127.0.0.1:8000/login
+Ứng dụng sẽ khởi động và có thể truy cập tại: **http://127.0.0.1:8000** và **http://127.0.0.1:8000/login**
 
 ### Tài Khoản Mặc Định
 
