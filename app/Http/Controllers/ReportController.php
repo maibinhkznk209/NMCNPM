@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ExcelExportService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -9,6 +10,10 @@ use Carbon\Carbon;
 
 class ReportController extends Controller
 {
+    public function __construct(private readonly ExcelExportService $excelExport)
+    {
+    }
+    
     
     public function index(Request $request): JsonResponse
     {
@@ -70,22 +75,33 @@ class ReportController extends Controller
             ->whereYear('pm.NgayMuon', $y)
             ->groupBy('tl.MaTheLoai', 'tl.TenTheLoai')
             ->select([
-                'tl.MaTheLoai as MaTheLoai',
-                'tl.TenTheLoai as TenTheLoai',
-                DB::raw('COUNT(*) as SoLuotMuon'),
+                'tl.MaTheLoai as genre_id',
+                'tl.TenTheLoai as genre_name',
+                DB::raw('COUNT(*) as borrow_count'),
+                DB::raw('GROUP_CONCAT(ds.TenDauSach) as books'),
             ])
-            ->orderByDesc('SoLuotMuon')
+            ->orderByDesc('borrow_count')
             ->get();
 
-        $genres = $rows->map(function ($r) {
+        $total = (int) $rows->sum('borrow_count');
+
+        $genres = $rows->map(function ($r) use ($total) {
+            $borrowCount = (int) ($r->borrow_count ?? 0);
+            $percentage = $total > 0 ? ($borrowCount / $total) * 100 : 0;
+
+            $books = [];
+            if (!empty($r->books)) {
+                $books = array_values(array_unique(array_filter(array_map('trim', explode(',', (string) $r->books)))));
+            }
+
             return [
-                'MaTheLoai' => $r->MaTheLoai,
-                'TenTheLoai' => $r->TenTheLoai,
-                'SoLuotMuon' => (int)$r->SoLuotMuon,
+                'id' => $r->genre_id,
+                'name' => $r->genre_name,
+                'borrow_count' => $borrowCount,
+                'percentage' => $percentage,
+                'books' => $books,
             ];
         })->values()->all();
-
-        $total = (int) $rows->sum('SoLuotMuon');
 
         return response()->json([
             'success' => true,
@@ -111,7 +127,7 @@ class ReportController extends Controller
         }
 
         try {
-            $date = \Carbon\Carbon::createFromFormat('Y-m-d', $dateStr)->startOfDay();
+            $reportDate = Carbon::createFromFormat('Y-m-d', $dateStr)->startOfDay();
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -119,21 +135,59 @@ class ReportController extends Controller
             ], 400);
         }
 
-        $rows = \Illuminate\Support\Facades\DB::table('PHIEUMUON as pm')
+        $rows = DB::table('PHIEUMUON as pm')
+            ->join('DOCGIA as dg', 'dg.MaDocGia', '=', 'pm.MaDocGia')
             ->join('CT_PHIEUMUON as ct', 'ct.MaPhieuMuon', '=', 'pm.MaPhieuMuon')
-            ->whereDate('pm.NgayHenTra', '<', $date->toDateString())
-            ->where(function ($q) use ($date) {
+            ->join('SACH as s', 's.MaSach', '=', 'ct.MaSach')
+            ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
+            ->whereDate('pm.NgayHenTra', '<', $reportDate->toDateString())
+            ->where(function ($q) use ($reportDate) {
                 $q->whereNull('ct.NgayTra')
-                ->orWhereDate('ct.NgayTra', '>', $date->toDateString());
+                ->orWhereDate('ct.NgayTra', '>', $reportDate->toDateString());
             })
+            ->select([
+                'ds.TenDauSach as book_title',
+                'dg.TenDocGia as reader_name',
+                'pm.NgayMuon as borrow_date',
+                'pm.NgayHenTra as due_date',
+                'ct.NgayTra as return_date',
+            ])
+            ->orderBy('pm.NgayHenTra')
+            ->orderBy('pm.MaPhieuMuon')
             ->get();
+
+        $finePerDay = 1000;
+        $overdueBooks = $rows->map(function ($r) use ($reportDate, $finePerDay) {
+            $dueDate = $r->due_date ? Carbon::parse($r->due_date)->startOfDay() : null;
+            $overdueDays = $dueDate ? $dueDate->diffInDays($reportDate) : 0;
+            if ($overdueDays < 0) {
+                $overdueDays = 0;
+            }
+
+            $status = 'Chưa trả';
+            if (!empty($r->return_date)) {
+                $status = 'Chưa trả (đã trả ngày '.Carbon::parse($r->return_date)->format('d/m/Y').')';
+            }
+
+            return [
+                'book_title' => (string) ($r->book_title ?? ''),
+                'reader_name' => (string) ($r->reader_name ?? ''),
+                'borrow_date' => $r->borrow_date ? Carbon::parse($r->borrow_date)->toDateString() : '',
+                'overdue_days' => (int) $overdueDays,
+                'status' => $status,
+                'fine_amount' => (int) ($overdueDays * $finePerDay),
+            ];
+        })->values();
+
+        $totalFine = (int) $overdueBooks->sum('fine_amount');
 
         return response()->json([
             'success' => true,
             'data' => [
-                'date' => $date->toDateString(),
-                'total_overdue' => $rows->count(),
-                'overdue_books' => $rows,
+                'date' => $reportDate->toDateString(),
+                'total_overdue' => $overdueBooks->count(),
+                'total_fine' => $totalFine,
+                'overdue_books' => $overdueBooks->all(),
             ],
         ], 200);
     }
@@ -145,12 +199,14 @@ class ReportController extends Controller
         $res = $this->genreStatistics($request);
         $payload = $res->getData(true);
 
-        $content = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        if (!($payload['success'] ?? false)) {
+            return $res;
+        }
 
-        return response($content, 200, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment; filename="genre-statistics.xlsx"',
-        ]);
+        $month = (int) $request->query('month');
+        $year = (int) $request->query('year');
+
+        return $this->excelExport->exportGenreStatistics($payload['data'], $month, $year);
     }
 
    
@@ -159,12 +215,13 @@ class ReportController extends Controller
         $res = $this->overdueBooks($request);
         $payload = $res->getData(true);
 
-        $content = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        if (!($payload['success'] ?? false)) {
+            return $res;
+        }
 
-        return response($content, 200, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment; filename="overdue-books.xlsx"',
-        ]);
+        $dateStr = (string) $request->query('date');
+
+        return $this->excelExport->exportOverdueBooks($payload['data'], $dateStr);
     }
 
  
@@ -276,8 +333,9 @@ class ReportController extends Controller
 
         return 0.0;
     }
-        public function page()
+
+    public function page()
     {
-        return view('reports'); 
+        return view('reports');
     }
 }

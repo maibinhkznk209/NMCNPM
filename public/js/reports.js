@@ -8,7 +8,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set default month and year
     const now = new Date();
     document.getElementById('genreMonth').value = now.getMonth() + 1;
-    document.getElementById('genreYear').value = now.getFullYear();
+    
+    const yearSelect = document.getElementById('genreYear');
+    const currentYear = String(now.getFullYear());
+    if (![...yearSelect.options].some(opt => opt.value === currentYear)) {
+        const opt = document.createElement('option');
+        opt.value = currentYear;
+        opt.textContent = currentYear;
+        yearSelect.appendChild(opt);
+    }
+    yearSelect.value = currentYear;
 
     // Initialize states - hide loading, show empty states
     document.getElementById('genreLoading').style.display = 'none';
@@ -17,6 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('overdueEmpty').style.display = 'block';
     document.getElementById('genreResults').style.display = 'none';
     document.getElementById('overdueResults').style.display = 'none';
+    document.getElementById('exportGenreBtn').disabled = true;
+    document.getElementById('exportOverdueBtn').disabled = true;
 });
 
 // Genre Statistics Report
@@ -101,8 +112,6 @@ document.getElementById('overdueReportForm').addEventListener('submit', async fu
         return;
     }
 
-    console.log('Testing overdue books API with date:', date);
-
     // Show loading
     document.getElementById('overdueLoading').style.display = 'block';
     document.getElementById('overdueResults').style.display = 'none';
@@ -111,24 +120,18 @@ document.getElementById('overdueReportForm').addEventListener('submit', async fu
 
     try {
         const apiUrl = `/api/reports/overdue-books?date=${date}`;
-        console.log('Calling API:', apiUrl);
         
         const response = await fetch(apiUrl);
-        console.log('Response status:', response.status);
-        
         const data = await response.json();
-        console.log('Response data:', data);
 
         if (data.success) {
             displayOverdueResults(data.data);
             document.getElementById('exportOverdueBtn').disabled = false;
         } else {
-            console.error('API returned error:', data.message);
             alert('Lỗi: ' + data.message);
             document.getElementById('overdueEmpty').style.display = 'block';
         }
     } catch (error) {
-        console.error('Error calling API:', error);
         alert('Có lỗi xảy ra khi tạo báo cáo: ' + error.message);
         document.getElementById('overdueEmpty').style.display = 'block';
     } finally {
@@ -137,16 +140,18 @@ document.getElementById('overdueReportForm').addEventListener('submit', async fu
 });
 
 function displayOverdueResults(data) {
-    document.getElementById('totalOverdue').textContent = data.total_overdue.toLocaleString();
-    document.getElementById('totalFine').textContent = data.total_fine.toLocaleString() + 'đ';
+    const totalOverdue = Number(data.total_overdue || 0);
+    const totalFine = Number(data.total_fine || 0);
+    document.getElementById('totalOverdue').textContent = totalOverdue.toLocaleString();
+    document.getElementById('totalFine').textContent = totalFine.toLocaleString() + 'đ';
     document.getElementById('reportDate').textContent = new Date(data.date).toLocaleDateString('vi-VN');
-    document.getElementById('totalOverdueFooter').textContent = data.total_overdue.toLocaleString();
-    document.getElementById('totalFineFooter').textContent = data.total_fine.toLocaleString() + 'đ';
+    document.getElementById('totalOverdueFooter').textContent = totalOverdue.toLocaleString();
+    document.getElementById('totalFineFooter').textContent = totalFine.toLocaleString() + 'đ';
 
     const tbody = document.getElementById('overdueTableBody');
     tbody.innerHTML = '';
 
-    if (data.overdue_books.length === 0) {
+    if (!data.overdue_books || data.overdue_books.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = '<td colspan="7" class="text-center text-muted py-4">Không có sách trả trễ trong ngày này</td>';
         tbody.appendChild(row);
@@ -154,6 +159,7 @@ function displayOverdueResults(data) {
         data.overdue_books.forEach((book, index) => {
             const row = document.createElement('tr');
             
+            const fineAmount = Number(book.fine_amount || 0);
             row.innerHTML = `
                 <td class="text-center">${index + 1}</td>
                 <td><strong>${book.book_title}</strong></td>
@@ -161,7 +167,7 @@ function displayOverdueResults(data) {
                 <td class="text-center">${new Date(book.borrow_date).toLocaleDateString('vi-VN')}</td>
                 <td class="text-center"><span class="badge bg-danger">${book.overdue_days} ngày</span></td>
                 <td><span class="badge ${book.status.includes('Chưa trả') ? 'bg-danger' : 'bg-warning'}">${book.status}</span></td>
-                <td class="text-center">${book.fine_amount.toLocaleString()}đ</td>
+                <td class="text-center">${fineAmount.toLocaleString()}đ</td>
             `;
             tbody.appendChild(row);
         });
