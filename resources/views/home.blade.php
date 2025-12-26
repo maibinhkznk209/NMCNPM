@@ -560,20 +560,34 @@
                   $statusClass = '';
                   $statuses = $book->cuonSachs ? $book->cuonSachs->pluck('TinhTrang') : collect();
 
-                  if ($statuses->contains(\App\Models\CuonSach::TINH_TRANG_CO_SAN)) {
-                      $statusText = 'Có sẵn';
+                  $availableCount = $statuses->filter(fn($s) => (int)$s === \App\Models\CuonSach::TINH_TRANG_CO_SAN)->count();
+                  $borrowedCount  = $statuses->filter(fn($s) => (int)$s === \App\Models\CuonSach::TINH_TRANG_DANG_MUON)->count();
+                  $damagedCount   = $statuses->filter(fn($s) => (int)$s === \App\Models\CuonSach::TINH_TRANG_HONG)->count();
+                  $lostCount      = $statuses->filter(fn($s) => (int)$s === \App\Models\CuonSach::TINH_TRANG_BI_MAT)->count();
+
+                  if ($availableCount > 0) {
                       $statusClass = 'status-available';
-                  } elseif ($statuses->contains(\App\Models\CuonSach::TINH_TRANG_DANG_MUON)) {
-                      $statusText = 'Đang được mượn';
+                      $statusText  = 'Có sẵn' . ' (' . $availableCount . ')';
+                      if ($borrowedCount > 0) {
+                          $statusText .= ' • Đang mượn (' . $borrowedCount . ')';
+                      }
+                      if ($damagedCount > 0) {
+                          $statusText .= ' • Hỏng (' . $damagedCount . ')';
+                      }
+                      if ($lostCount > 0) {
+                          $statusText .= ' • Mất (' . $lostCount . ')';
+                      }
+                  } elseif ($borrowedCount > 0) {
                       $statusClass = 'status-borrowed';
-                  } elseif ($statuses->contains(\App\Models\CuonSach::TINH_TRANG_HONG)) {
-                      $statusText = 'Hỏng';
+                      $statusText  = 'Đang được mượn (' . $borrowedCount . ')';
+                  } elseif ($damagedCount > 0) {
                       $statusClass = 'status-damaged';
-                  } elseif ($statuses->contains(\App\Models\CuonSach::TINH_TRANG_BI_MAT)) {
-                      $statusText = 'Mất';
+                      $statusText  = 'Hỏng (' . $damagedCount . ')';
+                  } elseif ($lostCount > 0) {
                       $statusClass = 'status-lost';
+                      $statusText  = 'Mất (' . $lostCount . ')';
                   }
-                @endphp
+@endphp
 
                 <tr>
                   <td><strong>{{ $book->MaSach }}</strong></td>
