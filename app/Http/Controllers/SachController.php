@@ -25,10 +25,10 @@ class SachController extends Controller
     {
         $v = trim(mb_strtolower($v));
         return match ($v) {
-            'có sẵn', 'co san', 'sẵn có', 'san co' => CuonSach::TINH_TRANG_CO_SAN,
-            'đã cho mượn', 'da cho muon', 'đang được mượn', 'dang duoc muon' => CuonSach::TINH_TRANG_DANG_MUON,
-            'hỏng', 'hong' => CuonSach::TINH_TRANG_HONG,
-            'mất', 'mat', 'bị mất', 'bi mat' => CuonSach::TINH_TRANG_BI_MAT,
+            'có sẵn', 'co san', 'sẵn có', 'san co' => CuonSach::TINH_TRANG_CO_SAN,       // 1
+            'đã cho mượn', 'da cho muon', 'đang được mượn', 'dang duoc muon' => CuonSach::TINH_TRANG_DANG_MUON,  // 0
+            'hỏng', 'hong' => CuonSach::TINH_TRANG_HONG,                                 // 2
+            'mất', 'mat', 'bị mất', 'bi mat' => CuonSach::TINH_TRANG_BI_MAT,             // 3
             default => null,
         };
     }
@@ -94,25 +94,62 @@ class SachController extends Controller
 
     public function updateTinhTrangCuonSach(Request $request, int $maCuonSach)
     {
+        \Log::info('Update status called', [
+            'maCuonSach' => $maCuonSach,
+            'tinhTrang' => $request->input('TinhTrang'),
+            'is_json' => $request->expectsJson()
+        ]);
+
         $request->validate([
             'TinhTrang' => 'required|string',
         ]);
 
         $status = $this->mapTinhTrangTextToInt((string)$request->input('TinhTrang'));
         if ($status === null) {
+            \Log::error('Invalid status', ['tinhTrang' => $request->input('TinhTrang')]);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'error' => 'Tình trạng không hợp lệ'], 422);
+            }
             return back()->with('error', 'Tình trạng không hợp lệ');
         }
 
         $exists = DB::table('CUONSACH')->where('MaCuonSach', $maCuonSach)->exists();
         if (!$exists) {
+            \Log::error('Record not found', ['maCuonSach' => $maCuonSach]);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'error' => 'Không tìm thấy cuốn sách'], 404);
+            }
             return back()->with('error', 'Không tìm thấy cuốn sách');
         }
 
-        DB::table('CUONSACH')->where('MaCuonSach', $maCuonSach)->update([
-            'TinhTrang' => $status,
-        ]);
+        try {
+            \Log::info('Updating status', ['maCuonSach' => $maCuonSach, 'status' => $status]);
+            $updated = DB::table('CUONSACH')->where('MaCuonSach', $maCuonSach)->update([
+                'TinhTrang' => $status,
+            ]);
 
-        return back()->with('success', 'Đã cập nhật tình trạng');
+            \Log::info('Update result', ['affected_rows' => $updated]);
+
+            if ($updated === 0) {
+                \Log::warning('No rows updated', ['maCuonSach' => $maCuonSach]);
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'error' => 'Không thể cập nhật tình trạng'], 400);
+                }
+                return back()->with('error', 'Không thể cập nhật tình trạng');
+            }
+
+            \Log::info('Status updated successfully', ['maCuonSach' => $maCuonSach, 'status' => $status]);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Đã cập nhật tình trạng'], 200);
+            }
+            return back()->with('success', 'Đã cập nhật tình trạng');
+        } catch (\Throwable $e) {
+            \Log::error('Update failed', ['maCuonSach' => $maCuonSach, 'error' => $e->getMessage()]);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'error' => 'Lỗi: ' . $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        }
     }
 
     public function store(Request $request)

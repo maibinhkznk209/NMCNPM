@@ -4,14 +4,19 @@
 
 @push('styles')
 <style>
+  body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+  }
+
   .container { max-width: 980px; margin: 0 auto; padding: 16px; }
   .header { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom: 16px; }
   .header h1 { margin:0; font-size: 22px; }
   .header p { margin:0; color:#666; }
 
-  .card { background:white; border:1px solid #eee; border-radius:12px; overflow:hidden; margin-bottom:14px; }
-  .card-hd { padding:12px 14px; background:#f7fafc; border-bottom:1px solid #eee; font-weight:700; }
-  .card-bd { padding:14px; }
+  .card { background:white; border:1px solid #eee; border-radius:12px; overflow:hidden; margin-bottom:14px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+  .card-hd { padding:12px 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-bottom:1px solid #eee; font-weight:700; color: white; }
+  .card-bd { padding:14px; background:white; }
 
   .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
   .form-group { margin-bottom:12px; }
@@ -20,7 +25,8 @@
   .hint { color:#718096; font-size:12px; margin-top:6px; }
 
   .btn { padding:9px 12px; border-radius:10px; border:none; cursor:pointer; }
-  .btn-primary { background:#2b6cb0; color:white; }
+  .btn-primary { background: #2563eb; color:white; font-weight: 600; }
+  .btn-primary:hover { background: #1d4ed8; }
   .btn-secondary { background:#edf2f7; color:#2d3748; }
   .toolbar { display:flex; justify-content:flex-end; gap:10px; margin-top:10px; }
 
@@ -70,7 +76,6 @@
                 <option value="{{ $tl->MaTheLoai }}">{{ $tl->TenTheLoai }}</option>
               @endforeach
             </select>
-           
           </div>
         </div>
 
