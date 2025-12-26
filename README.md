@@ -38,7 +38,7 @@ Hệ thống quản lý thư viện được xây dựng bằng Laravel framewor
 
 #### Bước 1: Clone Repository
 ```bash
-git https://github.com/maibinhkznk209/NMCNPM
+git clone https://github.com/maibinhkznk209/NMCNPM
 cd NMCNPM
 ```
 
