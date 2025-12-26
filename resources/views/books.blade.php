@@ -14,6 +14,7 @@
   .toolbar input, .toolbar select { padding:8px 10px; border:1px solid #ddd; border-radius:8px; }
   .btn { padding:8px 12px; border-radius:8px; border: none; cursor:pointer; font-weight: 600; }
   .btn-primary { background:#2b6cb0; color:white; }
+  .btn-primary:disabled { background:#ccc; cursor:not-allowed; }
   .btn-secondary { background:#edf2f7; color:#2d3748; }
   .btn-outline { background:white; border:1px solid #ddd; }
 
@@ -102,11 +103,7 @@
           <td><span class="badge">{{ $cs->TinhTrang ?? '-' }}</span></td>
           <td>
             <button type="button" class="btn btn-primary"
-              onclick="openStatusModal(
-                '{{ $cs->MaCuonSach }}',
-                @json($cs->TenDauSach ?? ''),
-                @json($cs->TinhTrang ?? '')
-              )">
+              onclick="openStatusModal('{{ $cs->MaCuonSach }}', {{ json_encode($cs->TenDauSach ?? '') }}, {{ json_encode($cs->TinhTrang ?? '') }})">
               Cập nhật tình trạng
             </button>
           </td>
@@ -126,7 +123,7 @@
       <span class="close" onclick="closeStatusModal()">&times;</span>
     </div>
 
-    <form id="statusForm" method="POST">
+    <form id="statusForm" method="POST" onsubmit="return submitStatus(event)">
       @csrf
       <div class="modal-body">
         <div class="form-group">
@@ -158,6 +155,7 @@
     </form>
   </div>
 </div>
+
 @endsection
 
 @push('scripts')
@@ -175,6 +173,12 @@
 
   function closeStatusModal() {
     document.getElementById('statusModal').style.display = 'none';
+  }
+
+  function submitStatus(e) {
+    e.preventDefault();
+    document.getElementById('statusForm').submit();
+    return false;
   }
 
   window.addEventListener('click', function(e) {
