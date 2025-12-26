@@ -359,7 +359,13 @@
 @section('content')
   @if($isLoggedIn)
   <button id="toggle-sidebar" class="menu-button">☰</button>
-    <div id="user-display" class="user-info">👤 <span id="username-display">{{ $user->HoVaTen }}</span></div>
+    <div id="user-display" class="user-info">
+      <span id="username-display">{{ $user->HoVaTen }}</span>
+      <form method="POST" action="{{ route('logout') }}" class="user-logout-form" onsubmit="event.stopPropagation();">
+        @csrf
+        <button type="submit" class="user-logout-btn" onclick="event.stopPropagation();">Đăng Xuất</button>
+      </form>
+    </div>
 
   <!-- Hộp thông tin tài khoản -->
     <div id="account-info-box" style="display: none; position: fixed; top: 70px; right: 30px; padding: 20px; z-index: 1000; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #e9ecef;">

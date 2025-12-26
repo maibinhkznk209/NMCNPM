@@ -140,6 +140,64 @@ class DauSachController extends Controller
         }
     }
 
+    public function update(Request $request, int $id)
+    {
+        $request->validate([
+            'TenDauSach' => 'required|string|max:255',
+        ], [
+            'TenDauSach.required' => 'Vui lAýng nh §-p tA¦n Ž` §u sA­ch',
+        ]);
+
+        $ten = trim((string)$request->get('TenDauSach'));
+        if ($ten === '') {
+            return back()->withInput()->with('error', 'Vui lAýng nh §-p tA¦n Ž` §u sA­ch');
+        }
+
+        $exists = DB::table('DAUSACH')->where('MaDauSach', $id)->exists();
+        if (!$exists) {
+            return back()->with('error', 'KhA'ng tAªm th §y Ž` §u sA­ch');
+        }
+
+        DB::table('DAUSACH')->where('MaDauSach', $id)->update([
+            'TenDauSach' => $ten,
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return redirect()->back()->with('success', 'Ž?Aœ c §-p nh §-t tA¦n Ž` §u sA­ch');
+    }
+
+    public function destroy(Request $request, int $id)
+    {
+        $exists = DB::table('DAUSACH')->where('MaDauSach', $id)->exists();
+        if (!$exists) {
+            return back()->with('error', 'KhA'ng tAªm th §y Ž` §u sA­ch');
+        }
+
+        $hasSach = DB::table('SACH')->where('MaDauSach', $id)->exists();
+        if ($hasSach) {
+            return back()->with('error', 'KhA'ng th ¯Ÿ xA3a Ž` §u sA­ch vA¼ nA3y vA¼ nA3y Ž`ang cA3 sA­ch liAªn quan');
+        }
+
+        DB::beginTransaction();
+        try {
+            DB::table('CT_TACGIA')->where('MaDauSach', $id)->delete();
+            DB::table('DAUSACH')->where('MaDauSach', $id)->delete();
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->with('error', 'CA3 l ¯-i x §œy ra: ' . $e->getMessage());
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return redirect()->back()->with('success', 'Ž?Aœ xA3a Ž` §u sA­ch');
+    }
+
     private function normalizeIdList($value): array
     {
         if (is_array($value)) {

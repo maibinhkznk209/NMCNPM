@@ -46,6 +46,8 @@ Route::middleware(['role:Thủ thư,Admin'])->group(function () {
 
     Route::get('intake', [IntakeController::class, 'index'])->name('intake.index');
     Route::post('intake/dau-sach', [DauSachController::class, 'store'])->name('intake.dausach.store');
+    Route::patch('intake/dau-sach/{id}', [DauSachController::class, 'update'])->name('intake.dausach.update');
+    Route::delete('intake/dau-sach/{id}', [DauSachController::class, 'destroy'])->name('intake.dausach.destroy');
     Route::post('intake/sach', [SachController::class, 'store'])->name('intake.sach.store');
 });
 

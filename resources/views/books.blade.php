@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'BM6 + BM10 - Tra cứu & cập nhật tình trạng cuốn sách')
+@section('title', 'Tra cứu & cập nhật tình trạng cuốn sách')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/books.css') }}">

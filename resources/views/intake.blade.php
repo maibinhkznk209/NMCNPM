@@ -33,6 +33,16 @@
   .toast { padding:10px 12px; border-radius:10px; margin: 10px 0; }
   .toast.success { background:#c6f6d5; color:#22543d; }
   .toast.error { background:#fed7d7; color:#742a2a; }
+
+  .table-wrap { overflow-x:auto; }
+  .data-table { width:100%; border-collapse: collapse; min-width: 720px; }
+  .data-table th, .data-table td { padding:10px 8px; border-bottom:1px solid #e2e8f0; text-align:left; vertical-align: middle; }
+  .data-table th { background:#f8fafc; font-weight:700; font-size:13px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .data-table input[type="text"] { width:100%; }
+  .actions { display:flex; gap:8px; justify-content:flex-end; }
+  .btn-danger { background:#e53e3e; color:white; font-weight:600; }
+  .btn-danger:hover { background:#c53030; }
+  .btn-danger:disabled { background:#cbd5e0; color:#718096; cursor:not-allowed; }
 </style>
 @endpush
 
@@ -102,7 +112,73 @@
     </div>
   </div>
 
+  
   <div class="card">
+    <div class="card-hd">Danh Mục Đầu Sách</div>
+    <div class="card-bd">
+      @if(($dauSachItems ?? collect())->isEmpty())
+        <div class="hint">Chưa có đầu sách nào.</div>
+      @else
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 10%;">Mã</th>
+                <th style="width: 30%;">Tên Đầu Sách</th>
+                <th style="width: 18%;">Thể Loại</th>
+                <th style="width: 24%;">Tác Giả</th>
+                <th style="width: 8%; text-align:center;">Số Sách</th>
+                <th style="width: 10%; text-align:right;">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              @foreach($dauSachItems as $ds)
+                @php
+                  $bookCount = (int)($ds->SoSach ?? 0);
+                @endphp
+                <tr>
+                  <td>{{ $ds->MaDauSach }}</td>
+                  <td>
+                    <input type="text"
+                           name="TenDauSach"
+                           value="{{ $ds->TenDauSach }}"
+                           required
+                           form="update-dausach-{{ $ds->MaDauSach }}">
+                  </td>
+                  <td>{{ $ds->TenTheLoai }}</td>
+                  <td>{{ $ds->TenTacGia ?? '-' }}</td>
+                  <td style="text-align:center;">{{ $bookCount }}</td>
+                  <td>
+                    <div class="actions">
+                      <form id="update-dausach-{{ $ds->MaDauSach }}" method="POST" action="{{ route('intake.dausach.update', $ds->MaDauSach) }}">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit" class="btn btn-primary">Lưu</button>
+                      </form>
+                      <form method="POST"
+                            action="{{ route('intake.dausach.destroy', $ds->MaDauSach) }}"
+                            onsubmit="return confirm('Ban co chac chan muon xoa dau sach nay?')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                                class="btn btn-danger"
+                                {{ $bookCount > 0 ? 'disabled' : '' }}
+                                title="{{ $bookCount > 0 ? 'Không thể xóa vì đang có sách liên quan' : '' }}">
+                          Xóa
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              @endforeach
+            </tbody>
+          </table>
+        </div>
+      @endif
+    </div>
+  </div>
+
+<div class="card">
     <div class="card-hd">Phiếu Nhận Sách</div>
     <div class="card-bd">
       <form method="POST" action="{{ route('intake.sach.store') }}">

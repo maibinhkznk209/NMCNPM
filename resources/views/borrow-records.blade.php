@@ -1147,11 +1147,11 @@
       color: #48bb78;
     }
     
-    .book-status-select option[value="3"] {
+    .book-status-select option[value="2"] {
       color: #ed8936;
     }
     
-    .book-status-select option[value="4"] {
+    .book-status-select option[value="3"] {
       color: #e53e3e;
     }
 
@@ -2971,8 +2971,8 @@ function calculateExtendDays() {
           <td style="text-align: center;">
             <select class="book-status-select" id="book-status-${book.MaSach}" onchange="updateBookStatus(${book.MaSach})">
               <option value="1">📖 Tốt</option>
-              <option value="3">⚠️ Hỏng</option>
-              <option value="4">❌ Mất</option>
+              <option value="2">⚠️ Hỏng</option>
+              <option value="3">❌ Mất</option>
             </select>
           </td>
           <td style="text-align: left; font-size: 12px; color: #718096;">
@@ -3168,5 +3168,4 @@ function calculateExtendDays() {
   }
 </script>
 @endpush
-
 

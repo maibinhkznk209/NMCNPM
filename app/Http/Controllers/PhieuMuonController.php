@@ -139,8 +139,32 @@ class PhieuMuonController extends Controller
         $statuses = $payload['book_statuses'] ?? [];
         if (is_array($statuses)) {
             $normalized = [];
+            $usesLegacyValues = false;
             foreach ($statuses as $k => $v) {
-                $normalized[(int)$k] = (int)$v;
+                $value = (int)$v;
+                if ($value === 4) {
+                    $usesLegacyValues = true;
+                }
+                $normalized[(int)$k] = $value;
+            }
+
+            if ($usesLegacyValues) {
+                // Legacy UI used 1 (tốt), 3 (hỏng), 4 (mất)
+                foreach ($normalized as $k => $v) {
+                    if ($v === 3) {
+                        $normalized[$k] = 2;
+                    } elseif ($v === 4) {
+                        $normalized[$k] = 3;
+                    } elseif (!in_array($v, [1, 2, 3], true)) {
+                        $normalized[$k] = 1;
+                    }
+                }
+            } else {
+                foreach ($normalized as $k => $v) {
+                    if (!in_array($v, [1, 2, 3], true)) {
+                        $normalized[$k] = 1;
+                    }
+                }
             }
             $data['book_statuses'] = $normalized;
         } else {
