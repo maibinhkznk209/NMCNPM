@@ -70,6 +70,7 @@ class PhieuMuonController extends Controller
             'MaSach' => 'required|array|min:1',
             'MaSach.*' => 'integer',
             'borrow_date' => 'sometimes|date',
+            'due_date' => 'sometimes|date',
         ]);
 
         if ($validator->fails()) {
@@ -99,19 +100,32 @@ class PhieuMuonController extends Controller
             throw new Exception('Ngày mượn không thể là ngày trong tương lai');
         }
 
+        $dueDate = isset($data['due_date']) ? Carbon::parse($data['due_date']) : null;
+        if ($dueDate && $dueDate->lt($borrowDate)) {
+            throw new Exception('Ngay hen tra khong duoc truoc ngay muon');
+        }
+
         return [
             'MaDocGia' => $maDocGia,
             'MaSach' => $maSachArr,
             'borrow_date' => $borrowDate,
+            'due_date' => $dueDate,
         ];
     }
 
     private function validateReturnRequest(Request $request): array
     {
-        $validator = Validator::make($request->all(), [
+        // UI sends 'sach_ids' (frontend) while backend originally used 'MaSach'
+        $payload = $request->all();
+        if (!isset($payload['MaSach']) && isset($payload['sach_ids'])) {
+            $payload['MaSach'] = $payload['sach_ids'];
+        }
+
+        $validator = Validator::make($payload, [
             'MaSach' => 'required|array|min:1',
             'MaSach.*' => 'integer',
             'return_date' => 'sometimes|date',
+            'book_statuses' => 'sometimes|array',
         ]);
 
         if ($validator->fails()) {
@@ -120,6 +134,43 @@ class PhieuMuonController extends Controller
 
         $data = $validator->validated();
         $data['MaSach'] = array_values(array_unique(array_map('intval', $data['MaSach'])));
+
+        // Normalize statuses if provided (1: tốt, 2: hỏng, 3: mất)
+        $statuses = $payload['book_statuses'] ?? [];
+        if (is_array($statuses)) {
+            $normalized = [];
+            $usesLegacyValues = false;
+            foreach ($statuses as $k => $v) {
+                $value = (int)$v;
+                if ($value === 4) {
+                    $usesLegacyValues = true;
+                }
+                $normalized[(int)$k] = $value;
+            }
+
+            if ($usesLegacyValues) {
+                // Legacy UI used 1 (tốt), 3 (hỏng), 4 (mất)
+                foreach ($normalized as $k => $v) {
+                    if ($v === 3) {
+                        $normalized[$k] = 2;
+                    } elseif ($v === 4) {
+                        $normalized[$k] = 3;
+                    } elseif (!in_array($v, [1, 2, 3], true)) {
+                        $normalized[$k] = 1;
+                    }
+                }
+            } else {
+                foreach ($normalized as $k => $v) {
+                    if (!in_array($v, [1, 2, 3], true)) {
+                        $normalized[$k] = 1;
+                    }
+                }
+            }
+            $data['book_statuses'] = $normalized;
+        } else {
+            $data['book_statuses'] = [];
+        }
+
         return $data;
     }
 
@@ -132,6 +183,130 @@ class PhieuMuonController extends Controller
         return $daysLate * 1000;
     }
 
+
+    /**
+     * =========================
+     * INVENTORY (TÌNH TRẠNG SÁCH)
+     * Ưu tiên dùng CUONSACH.TinhTrang (0/1/2/3) nếu có bảng CUONSACH.
+     * Fallback:
+     *  - SACH.TinhTrang (nếu hệ thống cũ có cột này)
+     *  - SACH.SoLuong (giảm/tăng số lượng nếu chỉ có tồn kho theo số lượng)
+     * =========================
+     */
+    private function hasCuonSachTable(): bool
+    {
+        return Schema::hasTable('CUONSACH')
+            && Schema::hasColumn('CUONSACH', 'MaSach')
+            && Schema::hasColumn('CUONSACH', 'TinhTrang');
+    }
+
+    private function markBorrowed(int $maSach): void
+    {
+        // 0 = Đang mượn
+        if ($this->hasCuonSachTable()) {
+            $cuon = DB::table('CUONSACH')
+                ->where('MaSach', $maSach)
+                ->where('TinhTrang', 1) // 1 = Có sẵn
+                ->orderBy('MaCuonSach')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$cuon) {
+                throw new Exception("Sách (MaSach={$maSach}) hiện không còn cuốn 'Có sẵn'");
+            }
+
+            DB::table('CUONSACH')->where('MaCuonSach', $cuon->MaCuonSach)->update([
+                'TinhTrang' => 0,
+            ]);
+            return;
+        }
+
+        if (Schema::hasColumn('SACH', 'TinhTrang')) {
+            $updated = DB::table('SACH')
+                ->where('MaSach', $maSach)
+                ->where('TinhTrang', 1)
+                ->update(['TinhTrang' => 0]);
+
+            if ($updated === 0) {
+                throw new Exception("Sách (MaSach={$maSach}) hiện không ở trạng thái 'Có sẵn'");
+            }
+            return;
+        }
+
+        if (Schema::hasColumn('SACH', 'SoLuong')) {
+            $row = DB::table('SACH')->where('MaSach', $maSach)->lockForUpdate()->first();
+            $qty = $row ? (int)$row->SoLuong : 0;
+            if ($qty <= 0) {
+                throw new Exception("Sách (MaSach={$maSach}) đã hết số lượng có sẵn");
+            }
+            DB::table('SACH')->where('MaSach', $maSach)->update(['SoLuong' => $qty - 1]);
+        }
+    }
+
+    private function restoreBorrowedToAvailable(int $maSach): void
+    {
+        // 1 = Có sẵn
+        if ($this->hasCuonSachTable()) {
+            $cuon = DB::table('CUONSACH')
+                ->where('MaSach', $maSach)
+                ->where('TinhTrang', 0) // đang mượn
+                ->orderBy('MaCuonSach')
+                ->lockForUpdate()
+                ->first();
+
+            if ($cuon) {
+                DB::table('CUONSACH')->where('MaCuonSach', $cuon->MaCuonSach)->update([
+                    'TinhTrang' => 1,
+                ]);
+            }
+            return;
+        }
+
+        if (Schema::hasColumn('SACH', 'TinhTrang')) {
+            DB::table('SACH')->where('MaSach', $maSach)->update(['TinhTrang' => 1]);
+            return;
+        }
+
+        if (Schema::hasColumn('SACH', 'SoLuong')) {
+            DB::table('SACH')->where('MaSach', $maSach)->increment('SoLuong', 1);
+        }
+    }
+
+    private function setInventoryStatusOnReturn(int $maSach, int $status): void
+    {
+        // status: 1=tốt(có sẵn), 2=hỏng, 3=mất
+        $status = in_array($status, [1, 2, 3], true) ? $status : 1;
+
+        if ($this->hasCuonSachTable()) {
+            $cuon = DB::table('CUONSACH')
+                ->where('MaSach', $maSach)
+                ->where('TinhTrang', 0) // đang mượn
+                ->orderBy('MaCuonSach')
+                ->lockForUpdate()
+                ->first();
+
+            // Không tìm thấy cuốn đang mượn -> bỏ qua để tránh crash (đảm bảo CT_PHIEUMUON vẫn cập nhật)
+            if ($cuon) {
+                DB::table('CUONSACH')->where('MaCuonSach', $cuon->MaCuonSach)->update([
+                    'TinhTrang' => $status,
+                ]);
+            }
+            return;
+        }
+
+        if (Schema::hasColumn('SACH', 'TinhTrang')) {
+            DB::table('SACH')->where('MaSach', $maSach)->update(['TinhTrang' => $status]);
+            return;
+        }
+
+        if (Schema::hasColumn('SACH', 'SoLuong')) {
+            // Nếu trả "tốt" thì tăng lại số lượng; hỏng/mất thì không tăng.
+            if ($status === 1) {
+                DB::table('SACH')->where('MaSach', $maSach)->increment('SoLuong', 1);
+            }
+        }
+    }
+
     /**
      * GET /api/borrow-records
      */
@@ -139,36 +314,106 @@ class PhieuMuonController extends Controller
     {
         $today = $this->today();
 
+        // Base rows (1 row per borrow record)
         $rows = DB::table('PHIEUMUON as pm')
             ->join('DOCGIA as dg', 'dg.MaDocGia', '=', 'pm.MaDocGia')
             ->leftJoin('CT_PHIEUMUON as ct', 'ct.MaPhieuMuon', '=', 'pm.MaPhieuMuon')
-            ->leftJoin('SACH as s', 's.MaSach', '=', 'ct.MaSach')
-            ->leftJoin('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
             ->select(
                 'pm.MaPhieuMuon',
                 'pm.MaDocGia',
                 'dg.TenDocGia',
+                'dg.Email',
                 'pm.NgayMuon',
                 'pm.NgayHenTra',
                 DB::raw('SUM(CASE WHEN ct.NgayTra IS NULL THEN 1 ELSE 0 END) as so_sach_chua_tra'),
                 DB::raw('COUNT(ct.MaSach) as tong_sach'),
-                DB::raw('GROUP_CONCAT(DISTINCT ds.TenDauSach) as danh_sach_ten_dau_sach')
+                DB::raw('MAX(ct.NgayTra) as max_ngay_tra')
             )
-            ->groupBy('pm.MaPhieuMuon', 'pm.MaDocGia', 'dg.TenDocGia', 'pm.NgayMuon', 'pm.NgayHenTra')
+            ->groupBy('pm.MaPhieuMuon', 'pm.MaDocGia', 'dg.TenDocGia', 'dg.Email', 'pm.NgayMuon', 'pm.NgayHenTra')
             ->orderBy('pm.NgayMuon', 'desc')
             ->get();
 
-        $data = $rows->map(function ($r) use ($today) {
-            $status = 'active';
-            $ngayHenTra = $r->NgayHenTra ? Carbon::parse($r->NgayHenTra) : null;
+        $ids = $rows->pluck('MaPhieuMuon')->all();
 
-            if ((int)$r->tong_sach > 0 && (int)$r->so_sach_chua_tra === 0) {
+        // Books per borrow record (to satisfy UI expectations: record.books[])
+        $booksByPM = [];
+        if (!empty($ids)) {
+            $bookRows = DB::table('CT_PHIEUMUON as ct')
+                ->join('SACH as s', 's.MaSach', '=', 'ct.MaSach')
+                ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
+                ->leftJoin('CT_TACGIA as ctg', 'ctg.MaDauSach', '=', 'ds.MaDauSach')
+                ->leftJoin('TACGIA as tg', 'tg.MaTacGia', '=', 'ctg.MaTacGia')
+                ->whereIn('ct.MaPhieuMuon', $ids)
+                ->select(
+                    'ct.MaPhieuMuon',
+                    'ct.MaSach',
+                    'ds.TenDauSach',
+                    DB::raw('GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia')
+                )
+                ->groupBy('ct.MaPhieuMuon', 'ct.MaSach', 'ds.TenDauSach')
+                ->orderBy('ct.MaPhieuMuon')
+                ->orderBy('ct.MaSach')
+                ->get();
+
+            foreach ($bookRows as $r) {
+                $author = $r->TenTacGia ?: null;
+                $firstAuthor = $author ? explode(',', (string)$author)[0] : null;
+
+                $booksByPM[$r->MaPhieuMuon][] = [
+                    'id' => (int)$r->MaSach,
+                    'code' => (string)$r->MaSach,
+                    'MaSach' => (int)$r->MaSach,
+                    'TenSach' => $r->TenDauSach,
+                    'TenDauSach' => $r->TenDauSach,
+                    'title' => $r->TenDauSach,
+                    'author' => $author,
+                    'TenTacGia' => $author,
+                    'tac_gia' => $firstAuthor ? ['TenTacGia' => $firstAuthor] : null,
+                    'the_loais' => [],
+                ];
+            }
+        }
+
+        $data = $rows->map(function ($r) use ($today, $booksByPM) {
+            $hasUnreturned = ((int)$r->so_sach_chua_tra) > 0;
+            $dueDate = Carbon::parse($r->NgayHenTra);
+
+            if (!$hasUnreturned) {
                 $status = 'returned';
-            } elseif ($ngayHenTra && $ngayHenTra->lt($today)) {
+                $returnDate = $r->max_ngay_tra;
+            } elseif ($today->gt($dueDate)) {
                 $status = 'overdue';
+                $returnDate = null;
+            } else {
+                $status = 'borrowed';
+                $returnDate = null;
             }
 
+            $books = $booksByPM[$r->MaPhieuMuon] ?? [];
+
             return [
+                // Canonical fields (used by borrow-records.blade.php JS)
+                'id' => (string)$r->MaPhieuMuon,
+                'ma_phieu' => (string)$r->MaPhieuMuon,
+                'code' => (string)$r->MaPhieuMuon,
+                'borrow_date' => $r->NgayMuon,
+                'due_date' => $r->NgayHenTra,
+                'return_date' => $returnDate,
+                'status' => $status,
+                'is_overdue' => $status === 'overdue',
+                'fine_created' => false,
+
+                'reader' => [
+                    'id' => (string)$r->MaDocGia,
+                    'name' => $r->TenDocGia,
+                    'email' => $r->Email,
+                ],
+                'reader_name' => $r->TenDocGia,
+                'reader_email' => $r->Email,
+
+                'books' => $books,
+
+                // Backward compatible fields
                 'MaPhieuMuon' => $r->MaPhieuMuon,
                 'MaDocGia' => $r->MaDocGia,
                 'TenDocGia' => $r->TenDocGia,
@@ -177,7 +422,8 @@ class PhieuMuonController extends Controller
                 'TrangThai' => $status,
                 'TongSach' => (int)$r->tong_sach,
                 'SoSachChuaTra' => (int)$r->so_sach_chua_tra,
-                'TenDauSach' => $r->danh_sach_ten_dau_sach ? explode(',', (string)$r->danh_sach_ten_dau_sach) : [],
+                'book_title' => !empty($books) ? implode(', ', array_map(fn ($b) => $b['TenSach'] ?? $b['title'] ?? 'Không rõ tên sách', $books)) : null,
+                'book_author' => !empty($books) ? implode(', ', array_map(fn ($b) => $b['author'] ?? 'Chưa có tác giả', $books)) : null,
             ];
         });
 
@@ -193,7 +439,14 @@ class PhieuMuonController extends Controller
         $pm = DB::table('PHIEUMUON as pm')
             ->join('DOCGIA as dg', 'dg.MaDocGia', '=', 'pm.MaDocGia')
             ->where('pm.MaPhieuMuon', $id)
-            ->select('pm.*', 'dg.TenDocGia')
+            ->select(
+                'pm.MaPhieuMuon',
+                'pm.MaDocGia',
+                'pm.NgayMuon',
+                'pm.NgayHenTra',
+                'dg.TenDocGia',
+                'dg.Email'
+            )
             ->first();
 
         if (!$pm) {
@@ -203,28 +456,77 @@ class PhieuMuonController extends Controller
         $details = DB::table('CT_PHIEUMUON as ct')
             ->join('SACH as s', 's.MaSach', '=', 'ct.MaSach')
             ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
+            ->leftJoin('CT_TACGIA as ctg', 'ctg.MaDauSach', '=', 'ds.MaDauSach')
+            ->leftJoin('TACGIA as tg', 'tg.MaTacGia', '=', 'ctg.MaTacGia')
             ->where('ct.MaPhieuMuon', $id)
             ->select(
                 'ct.MaSach',
-                'ds.TenDauSach',
                 'ct.NgayTra',
                 'ct.TienPhat',
-                'pm.NgayHenTra'
+                's.TriGia',
+                'ds.TenDauSach',
+                DB::raw('GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia')
             )
-            ->addSelect(DB::raw('CASE WHEN ct.NgayTra IS NULL THEN 1 ELSE 0 END as chua_tra'))
-            ->join('PHIEUMUON as pm', 'pm.MaPhieuMuon', '=', 'ct.MaPhieuMuon')
+            ->groupBy('ct.MaSach', 'ct.NgayTra', 'ct.TienPhat', 's.TriGia', 'ds.TenDauSach')
             ->orderBy('ct.MaSach')
             ->get();
+
+        $chiTiet = $details->map(function ($r) {
+            $author = $r->TenTacGia ?: null;
+            $firstAuthor = $author ? explode(',', (string)$author)[0] : null;
+            $triGia = $r->TriGia !== null ? (float)$r->TriGia : 0;
+
+            $sach = [
+                'id' => (int)$r->MaSach,
+                'MaSach' => (int)$r->MaSach,
+                'TenSach' => $r->TenDauSach,
+                'TenDauSach' => $r->TenDauSach,
+                'TriGia' => $triGia,
+                'tri_gia' => $triGia,
+                'title' => $r->TenDauSach,
+                'author' => $author,
+                'TenTacGia' => $author,
+                'tac_gia' => $firstAuthor ? ['TenTacGia' => $firstAuthor] : null,
+                'the_loais' => [],
+            ];
+
+            return [
+                'MaSach' => (int)$r->MaSach,
+                'NgayTra' => $r->NgayTra,
+                'TienPhat' => $r->TienPhat,
+                'sach' => $sach,
+            ];
+        });
+
+        $today = $this->today();
+        $dueDate = Carbon::parse($pm->NgayHenTra);
+        $hasUnreturned = $chiTiet->contains(fn ($x) => $x['NgayTra'] === null);
+
+        if (!$hasUnreturned) {
+            $status = 'returned';
+        } elseif ($today->gt($dueDate)) {
+            $status = 'overdue';
+        } else {
+            $status = 'borrowed';
+        }
 
         return response()->json([
             'success' => true,
             'data' => [
+                'id' => (string)$pm->MaPhieuMuon,
+                'MaPhieu' => $pm->MaPhieuMuon,
                 'MaPhieuMuon' => $pm->MaPhieuMuon,
                 'MaDocGia' => $pm->MaDocGia,
-                'TenDocGia' => $pm->TenDocGia,
                 'NgayMuon' => $pm->NgayMuon,
                 'NgayHenTra' => $pm->NgayHenTra,
-                'chi_tiet' => $details,
+                'TrangThai' => $status,
+                'doc_gia' => [
+                    'MaDocGia' => $pm->MaDocGia,
+                    'TenDocGia' => $pm->TenDocGia,
+                    'Email' => $pm->Email,
+                ],
+                'chi_tiet_phieu_muon' => $chiTiet,
+                'books' => $chiTiet->map(fn ($ct) => $ct['sach'])->values(),
             ],
         ]);
     }
@@ -272,7 +574,7 @@ class PhieuMuonController extends Controller
             $maSachArr = $validated['MaSach'];
             $borrowDate = $validated['borrow_date'];
 
-            $dueDate = $borrowDate->copy()->addDays($this->getBorrowDurationDays());
+            $dueDate = $validated['due_date'] ?? $borrowDate->copy()->addDays($this->getBorrowDurationDays());
             $maPhieuMuon = $this->generateMaPhieuMuon();
 
             DB::table('PHIEUMUON')->insert([
@@ -283,6 +585,9 @@ class PhieuMuonController extends Controller
             ]);
 
             foreach ($maSachArr as $maSach) {
+                // Cập nhật tồn kho: đánh dấu 1 cuốn sách đang mượn
+                $this->markBorrowed((int)$maSach);
+
                 DB::table('CT_PHIEUMUON')->insert([
                     'MaPhieuMuon' => $maPhieuMuon,
                     'MaSach' => $maSach,
@@ -322,12 +627,22 @@ class PhieuMuonController extends Controller
             $maDocGia = $validated['MaDocGia'];
             $maSachArr = $validated['MaSach'];
             $borrowDate = $validated['borrow_date'];
-            $dueDate = $borrowDate->copy()->addDays($this->getBorrowDurationDays());
+            $dueDate = $validated['due_date'] ?? $borrowDate->copy()->addDays($this->getBorrowDurationDays());
 
             // Replace details (simple approach)
+            $oldSach = DB::table('CT_PHIEUMUON')->where('MaPhieuMuon', $id)->pluck('MaSach')->all();
+
+            // Hoàn trả tồn kho cho các sách cũ (trong trường hợp sửa phiếu mượn trước khi trả)
+            foreach ($oldSach as $oldMaSach) {
+                $this->restoreBorrowedToAvailable((int)$oldMaSach);
+            }
+
             DB::table('CT_PHIEUMUON')->where('MaPhieuMuon', $id)->delete();
 
             foreach ($maSachArr as $maSach) {
+                // Cập nhật tồn kho: đánh dấu 1 cuốn sách đang mượn
+                $this->markBorrowed((int)$maSach);
+
                 DB::table('CT_PHIEUMUON')->insert([
                     'MaPhieuMuon' => $id,
                     'MaSach' => $maSach,
@@ -367,17 +682,73 @@ class PhieuMuonController extends Controller
 
             $dueDate = Carbon::parse($pm->NgayHenTra);
 
-            $items = [];
-            $total = 0;
+            $bookInfo = DB::table('SACH as s')
+                ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
+                ->whereIn('s.MaSach', $data['MaSach'])
+                ->select('s.MaSach', 's.TriGia', 'ds.TenDauSach')
+                ->get()
+                ->keyBy('MaSach');
+
+            $summary = [
+                'total_late_fine' => 0,
+                'total_compensation' => 0,
+                'total_fine' => 0,
+            ];
+
+            $bookDetails = [];
+            $bookStatuses = $data['book_statuses'] ?? [];
+
+            // Late fine is based on the record due date, applied per book (current UI design)
+            $lateFinePerBook = $this->calculateFineAmount($dueDate, $returnDate);
+            $daysLate = $returnDate->lte($dueDate) ? 0 : (int)$dueDate->diffInDays($returnDate);
 
             foreach ($data['MaSach'] as $maSach) {
-                $ten = $this->tenDauSachFromMaSach($maSach) ?? ('MaSach=' . $maSach);
-                $fine = $this->calculateFineAmount($dueDate, $returnDate);
-                $items[] = ['MaSach' => $maSach, 'TenDauSach' => $ten, 'TienPhat' => $fine];
-                $total += $fine;
+                $info = $bookInfo[$maSach] ?? null;
+                $ten = $info ? $info->TenDauSach : ('MaSach=' . $maSach);
+                $triGia = $info ? (int)$info->TriGia : 0;
+
+                $status = (int)($bookStatuses[$maSach] ?? 1);
+
+                $compensation = 0;
+                $compensationText = 'Tình trạng tốt: 0 VNĐ';
+                if ($status === 2) {
+                    $compensation = (int)round($triGia * 0.5);
+                    $compensationText = 'Hỏng (50% trị giá): ' . number_format($compensation, 0, ',', '.') . ' VNĐ';
+                } elseif ($status === 3) {
+                    $compensation = $triGia;
+                    $compensationText = 'Mất (100% trị giá): ' . number_format($compensation, 0, ',', '.') . ' VNĐ';
+                }
+
+                $lateText = $daysLate > 0
+                    ? ('Trễ ' . $daysLate . ' ngày: ' . number_format($lateFinePerBook, 0, ',', '.') . ' VNĐ')
+                    : 'Không trễ hạn: 0 VNĐ';
+
+                $total = $lateFinePerBook + $compensation;
+
+                $summary['total_late_fine'] += $lateFinePerBook;
+                $summary['total_compensation'] += $compensation;
+                $summary['total_fine'] += $total;
+
+                $bookDetails[] = [
+                    'sach_id' => (int)$maSach,
+                    'ten_sach' => $ten,
+                    'tinh_trang_moi' => $status,
+                    'late_fine' => $lateFinePerBook,
+                    'compensation' => $compensation,
+                    'tong_tien_phat' => $total,
+                    'late_fine_details' => $lateText,
+                    'compensation_details' => $compensationText,
+                ];
             }
 
-            return response()->json(['success' => true, 'data' => ['items' => $items, 'total' => $total]]);
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'summary' => $summary,
+                    'book_details' => $bookDetails,
+                    'return_date' => $returnDate->toDateString(),
+                ],
+            ]);
         } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
@@ -401,18 +772,36 @@ class PhieuMuonController extends Controller
 
             $dueDate = Carbon::parse($pm->NgayHenTra);
 
-            foreach ($data['MaSach'] as $maSach) {
-                $exists = DB::table('CT_PHIEUMUON')
-                    ->where('MaPhieuMuon', $phieuMuonId)
-                    ->where('MaSach', $maSach)
-                    ->exists();
+            $bookInfo = DB::table('SACH as s')
+                ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
+                ->whereIn('s.MaSach', $data['MaSach'])
+                ->select('s.MaSach', 's.TriGia', 'ds.TenDauSach')
+                ->get()
+                ->keyBy('MaSach');
 
-                if (!$exists) {
-                    throw new Exception("Sách (MaSach={$maSach}) không thuộc phiếu mượn này");
+            $bookStatuses = $data['book_statuses'] ?? [];
+
+            $lateFinePerBook = $this->calculateFineAmount($dueDate, $returnDate);
+
+            foreach ($data['MaSach'] as $maSach) {
+                $info = $bookInfo[$maSach] ?? null;
+                $triGia = $info ? (int)$info->TriGia : 0;
+
+                $status = (int)($bookStatuses[$maSach] ?? 1);
+
+                $compensation = 0;
+                if ($status === 2) {
+                    $compensation = (int)round($triGia * 0.5);
+                } elseif ($status === 3) {
+                    $compensation = $triGia;
                 }
 
-                $fine = $this->calculateFineAmount($dueDate, $returnDate);
+                $fine = $lateFinePerBook + $compensation;
 
+                // Update inventory status (ưu tiên CUONSACH.TinhTrang; fallback SACH.TinhTrang/SoLuong)
+                $this->setInventoryStatusOnReturn((int)$maSach, $status);
+
+// Update borrow detail
                 DB::table('CT_PHIEUMUON')
                     ->where('MaPhieuMuon', $phieuMuonId)
                     ->where('MaSach', $maSach)
@@ -437,6 +826,7 @@ class PhieuMuonController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'extend_days' => 'required|integer|min:1|max:30',
+            'new_due_date' => 'sometimes|date',
         ]);
 
         if ($validator->fails()) {
@@ -448,14 +838,25 @@ class PhieuMuonController extends Controller
             return response()->json(['success' => false, 'message' => 'Không tìm thấy phiếu mượn'], 404);
         }
 
-        $extendDays = (int)$validator->validated()['extend_days'];
-        $newDue = Carbon::parse($pm->NgayHenTra)->addDays($extendDays);
+        $validated = $validator->validated();
+        $extendDays = (int)$validated['extend_days'];
+
+        // If UI provided explicit new_due_date, trust it (still capped by extend_days rule)
+        if (!empty($validated['new_due_date'])) {
+            $newDue = Carbon::parse($validated['new_due_date']);
+        } else {
+            $newDue = Carbon::parse($pm->NgayHenTra)->addDays($extendDays);
+        }
 
         DB::table('PHIEUMUON')->where('MaPhieuMuon', $phieuMuonId)->update([
             'NgayHenTra' => $newDue->toDateString(),
         ]);
 
-        return response()->json(['success' => true, 'message' => 'Gia hạn thành công', 'data' => ['NgayHenTra' => $newDue->toDateString()]]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Gia hạn phiếu mượn thành công',
+            'data' => ['NgayHenTra' => $newDue->toDateString()],
+        ]);
     }
 
     /**
@@ -502,10 +903,30 @@ class PhieuMuonController extends Controller
      */
     public function readersListApi(): JsonResponse
     {
+        // UI (borrow-records.blade.php) expects a normalized shape:
+        // { id, MaDocGia, name, TenDocGia, email, Email, ... }
         $rows = DB::table('DOCGIA')
-            ->select('MaDocGia', 'TenDocGia', 'Email', 'NgayHetHan', 'TongNo')
+            ->select(
+                'MaDocGia',
+                'TenDocGia',
+                'Email',
+                'NgayHetHan',
+                'TongNo'
+            )
             ->orderBy('MaDocGia')
-            ->get();
+            ->get()
+            ->map(function ($r) {
+                return [
+                    'id' => $r->MaDocGia,
+                    'MaDocGia' => $r->MaDocGia,
+                    'name' => $r->TenDocGia,
+                    'TenDocGia' => $r->TenDocGia,
+                    'email' => $r->Email,
+                    'Email' => $r->Email,
+                    'NgayHetHan' => $r->NgayHetHan,
+                    'TongNo' => $r->TongNo,
+                ];
+            });
 
         return response()->json(['success' => true, 'data' => $rows]);
     }
@@ -523,10 +944,23 @@ class PhieuMuonController extends Controller
      */
     public function booksListApi(): JsonResponse
     {
+        // NOTE: In DB design, author is linked to DAUSACH via CT_TACGIA.
+        // UI expects to display book title + author in the selector.
         $q = DB::table('SACH as s')
             ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
             ->leftJoin('NHAXUATBAN as nxb', 'nxb.MaNXB', '=', 's.MaNXB')
+            ->leftJoin('CT_TACGIA as ctg', 'ctg.MaDauSach', '=', 'ds.MaDauSach')
+            ->leftJoin('TACGIA as tg', 'tg.MaTacGia', '=', 'ctg.MaTacGia')
             ->select(
+                's.MaSach',
+                'ds.TenDauSach',
+                's.NamXuatBan',
+                's.TriGia',
+                's.SoLuong',
+                'nxb.TenNXB',
+                DB::raw("GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia")
+            )
+            ->groupBy(
                 's.MaSach',
                 'ds.TenDauSach',
                 's.NamXuatBan',
@@ -535,14 +969,52 @@ class PhieuMuonController extends Controller
                 'nxb.TenNXB'
             )
             ->orderBy('s.MaSach');
-
-        // If TinhTrang exists, prefer only available
-        if (Schema::hasColumn('SACH', 'TinhTrang')) {
+        // Lọc chỉ sách còn "có sẵn" theo ưu tiên:
+        // 1) CUONSACH.TinhTrang = 1 (nếu có bảng cuốn sách)
+        // 2) SACH.TinhTrang = 1 (nếu hệ thống cũ có cột này)
+        // 3) SACH.SoLuong > 0 (fallback)
+        if (Schema::hasTable('CUONSACH') && Schema::hasColumn('CUONSACH', 'MaSach') && Schema::hasColumn('CUONSACH', 'TinhTrang')) {
+            $q->whereExists(function ($sub) {
+                $sub->select(DB::raw(1))
+                    ->from('CUONSACH as cs')
+                    ->whereColumn('cs.MaSach', 's.MaSach')
+                    ->where('cs.TinhTrang', 1);
+            });
+        } elseif (Schema::hasColumn('SACH', 'TinhTrang')) {
             $q->addSelect('s.TinhTrang');
             $q->where('s.TinhTrang', 1);
+        } elseif (Schema::hasColumn('SACH', 'SoLuong')) {
+            $q->where('s.SoLuong', '>', 0);
         }
 
-        $rows = $q->get();
+        $rows = $q->get()->map(function ($r) {
+            $author = $r->TenTacGia ?: null;
+            $firstAuthor = $author ? explode(',', (string)$author)[0] : null;
+
+            // Normalize a few fields for the current frontend implementation.
+            return [
+                'id' => (int)$r->MaSach,
+                'MaSach' => (int)$r->MaSach,
+                // Keep both for backward compatibility in UI
+                'TenDauSach' => $r->TenDauSach,
+                'TenSach' => $r->TenDauSach,
+                'title' => $r->TenDauSach,
+
+                // Author
+                'author' => $author,
+                'TenTacGia' => $author,
+                'tac_gia' => $firstAuthor ? ['TenTacGia' => $firstAuthor] : null,
+
+                // Other metadata
+                'NamXuatBan' => $r->NamXuatBan,
+                'TriGia' => $r->TriGia,
+                'SoLuong' => $r->SoLuong,
+                'TenNXB' => $r->TenNXB,
+                // If present
+                'TinhTrang' => property_exists($r, 'TinhTrang') ? $r->TinhTrang : null,
+            ];
+        });
+
         return response()->json(['success' => true, 'data' => $rows]);
     }
 
@@ -563,27 +1035,84 @@ class PhieuMuonController extends Controller
             ->where('MaPhieuMuon', $pmId)
             ->pluck('MaSach')
             ->map(fn ($v) => (int)$v)
-            ->toArray();
+            ->values()
+            ->all();
 
+        // Xác định phiếu mượn đã trả hết hay chưa (phục vụ UI chỉnh sửa phiếu trả)
+        $isReturnedRecord = !DB::table('CT_PHIEUMUON')
+            ->where('MaPhieuMuon', $pmId)
+            ->whereNull('NgayTra')
+            ->exists();
+
+        // Lấy danh sách sách có thể chọn:
+        // - Sách đang "Có sẵn" (TinhTrang = 1) OR
+        // - Sách đã nằm trong phiếu mượn này (để sửa phiếu mượn/phiếu trả vẫn thấy)
         $books = DB::table('SACH as s')
             ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
+            ->leftJoin('CT_TACGIA as ctg', 'ctg.MaDauSach', '=', 'ds.MaDauSach')
+            ->leftJoin('TACGIA as tg', 'tg.MaTacGia', '=', 'ctg.MaTacGia')
             ->leftJoin('NHAXUATBAN as nxb', 'nxb.MaNXB', '=', 's.MaNXB')
+            ->where(function ($q) use ($selected) {
+                if (Schema::hasTable('CUONSACH') && Schema::hasColumn('CUONSACH', 'MaSach') && Schema::hasColumn('CUONSACH', 'TinhTrang')) {
+                    $q->whereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('CUONSACH as cs')
+                            ->whereColumn('cs.MaSach', 's.MaSach')
+                            ->where('cs.TinhTrang', 1);
+                    });
+                } elseif (Schema::hasColumn('SACH', 'TinhTrang')) {
+                    $q->where('s.TinhTrang', 1);
+                } elseif (Schema::hasColumn('SACH', 'SoLuong')) {
+                    $q->where('s.SoLuong', '>', 0);
+                } else {
+                    $q->whereRaw('1=1');
+                }
+
+                if (!empty($selected)) {
+                    $q->orWhereIn('s.MaSach', $selected);
+                }
+            })
             ->select(
                 's.MaSach',
                 'ds.TenDauSach',
                 's.NamXuatBan',
                 's.TriGia',
-                'nxb.TenNXB'
+                'nxb.TenNXB',
+                DB::raw('GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia')
             )
+            ->groupBy('s.MaSach', 'ds.TenDauSach', 's.NamXuatBan', 's.TriGia', 'nxb.TenNXB')
             ->orderBy('s.MaSach')
-            ->get();
+            ->get()
+            ->map(function ($r) {
+                $author = $r->TenTacGia ?: null;
+                $firstAuthor = $author ? explode(',', (string)$author)[0] : null;
 
+                return [
+                    'id' => (int)$r->MaSach,
+                    'code' => (string)$r->MaSach,
+                    'MaSach' => (int)$r->MaSach,
+                    'TenDauSach' => $r->TenDauSach,
+                    'TenSach' => $r->TenDauSach,
+                    'title' => $r->TenDauSach,
+                    'author' => $author,
+                    'TenTacGia' => $author,
+                    'tac_gia' => $firstAuthor ? ['TenTacGia' => $firstAuthor] : null,
+                    'NamXuatBan' => $r->NamXuatBan,
+                    'TriGia' => $r->TriGia,
+                    'TenNXB' => $r->TenNXB,
+                    'the_loais' => [],
+                ];
+            })
+            ->values();
+
+        // IMPORTANT:
+        // - UI hiện tại đọc data.data là một MẢNG books
+        // - Đồng thời vẫn giữ thêm selected/is_returned_record để dùng khi cần
         return response()->json([
             'success' => true,
-            'data' => [
-                'selected' => $selected,
-                'books' => $books
-            ]
+            'data' => $books,
+            'selected' => $selected,
+            'is_returned_record' => $isReturnedRecord,
         ]);
     }
 
@@ -594,6 +1123,7 @@ class PhieuMuonController extends Controller
     public function showBorrowRecordsPage()
     {
         $today = Carbon::today();
+        $borrowDurationDays = $this->getBorrowDurationDays();
 
         $phieuMuons = DB::table('PHIEUMUON as pm')
             ->join('DOCGIA as dg', 'dg.MaDocGia', '=', 'pm.MaDocGia')
@@ -624,7 +1154,7 @@ class PhieuMuonController extends Controller
                 return $r;
             });
 
-        return view('borrow-records', compact('phieuMuons'));
+        return view('borrow-records', compact('phieuMuons', 'borrowDurationDays'));
     }
 
 

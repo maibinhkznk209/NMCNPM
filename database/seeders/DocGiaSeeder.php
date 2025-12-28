@@ -100,6 +100,9 @@ class DocGiaSeeder extends Seeder
         ];
 
         foreach ($docGias as $docGia) {
+            $docGia['NgayHetHan'] = Carbon::parse($docGia['NgayLapThe'])
+                ->addMonths(6)
+                ->toDateString();
             DocGia::create($docGia);
         }
     }

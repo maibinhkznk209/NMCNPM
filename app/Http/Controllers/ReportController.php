@@ -114,7 +114,6 @@ class ReportController extends Controller
         ]);
     }
 
-
     public function overdueBooks(Request $request): JsonResponse
     {
         $dateStr = $request->query('date');
@@ -135,16 +134,14 @@ class ReportController extends Controller
             ], 400);
         }
 
-        $rows = DB::table('PHIEUMUON as pm')
+        // Báo cáo trả trễ theo ngày: liệt kê các sách được trả trong ngày được chọn nhưng trả sau hạn.
+        $rows = DB::table('CT_PHIEUMUON as ct')
+            ->join('PHIEUMUON as pm', 'pm.MaPhieuMuon', '=', 'ct.MaPhieuMuon')
             ->join('DOCGIA as dg', 'dg.MaDocGia', '=', 'pm.MaDocGia')
-            ->join('CT_PHIEUMUON as ct', 'ct.MaPhieuMuon', '=', 'pm.MaPhieuMuon')
             ->join('SACH as s', 's.MaSach', '=', 'ct.MaSach')
             ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
-            ->whereDate('pm.NgayHenTra', '<', $reportDate->toDateString())
-            ->where(function ($q) use ($reportDate) {
-                $q->whereNull('ct.NgayTra')
-                ->orWhereDate('ct.NgayTra', '>', $reportDate->toDateString());
-            })
+            ->whereDate('ct.NgayTra', '=', $reportDate->toDateString())
+            ->whereColumn('ct.NgayTra', '>', 'pm.NgayHenTra')
             ->select([
                 'ds.TenDauSach as book_title',
                 'dg.TenDocGia as reader_name',
@@ -152,21 +149,23 @@ class ReportController extends Controller
                 'pm.NgayHenTra as due_date',
                 'ct.NgayTra as return_date',
             ])
-            ->orderBy('pm.NgayHenTra')
+            ->orderBy('ct.NgayTra')
             ->orderBy('pm.MaPhieuMuon')
             ->get();
 
         $finePerDay = 1000;
-        $overdueBooks = $rows->map(function ($r) use ($reportDate, $finePerDay) {
+        $overdueBooks = $rows->map(function ($r) use ($finePerDay) {
             $dueDate = $r->due_date ? Carbon::parse($r->due_date)->startOfDay() : null;
-            $overdueDays = $dueDate ? $dueDate->diffInDays($reportDate) : 0;
-            if ($overdueDays < 0) {
-                $overdueDays = 0;
+            $returnDate = $r->return_date ? Carbon::parse($r->return_date)->startOfDay() : null;
+
+            $overdueDays = 0;
+            if ($dueDate && $returnDate && $returnDate->gt($dueDate)) {
+                $overdueDays = (int) $dueDate->diffInDays($returnDate);
             }
 
-            $status = 'Chưa trả';
-            if (!empty($r->return_date)) {
-                $status = 'Chưa trả (đã trả ngày '.Carbon::parse($r->return_date)->format('d/m/Y').')';
+            $status = 'Đã trả trễ';
+            if ($returnDate) {
+                $status = 'Đã trả trễ ngày ' . $returnDate->format('d/m/Y');
             }
 
             return [
@@ -192,8 +191,6 @@ class ReportController extends Controller
         ], 200);
     }
 
-
-  
     public function exportGenreStatistics(Request $request)
     {
         $res = $this->genreStatistics($request);

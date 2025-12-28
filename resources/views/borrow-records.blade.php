@@ -1147,11 +1147,11 @@
       color: #48bb78;
     }
     
-    .book-status-select option[value="3"] {
+    .book-status-select option[value="2"] {
       color: #ed8936;
     }
     
-    .book-status-select option[value="4"] {
+    .book-status-select option[value="3"] {
       color: #e53e3e;
     }
 
@@ -1401,6 +1401,10 @@
           <label for="borrowDate">📅 Ngày mượn *</label>
           <input type="date" id="borrowDate" required>
         </div>
+        <div class="form-group">
+          <label for="borrowDueDate">📅 Ngày hẹn trả *</label>
+          <input type="date" id="borrowDueDate" required>
+        </div>
 
         <div class="modal-actions">
           <button type="button" class="btn cancel-btn" onclick="closeModal('borrowModal')">Hủy</button>
@@ -1431,7 +1435,7 @@
           </div>
           <div class="form-group">
             <label for="extendDays">📊 Số ngày gia hạn</label>
-            <input type="number" id="extendDays" min="1" max="30" placeholder="Số ngày" readonly>
+            <input type="number" id="extendDays" min="1" max="30" placeholder="Số ngày">
           </div>
         </div>
 
@@ -1553,6 +1557,8 @@
     return Promise.resolve(true);
   };
 
+  const BORROW_DURATION_DAYS = Number({{ $borrowDurationDays ?? 14 }});
+
   // Global variables
   let borrowRecords = [];
   let allReaders = [];
@@ -1579,7 +1585,14 @@
       const borrowData = await borrowResponse.json();
       
       if (borrowData.success) {
-        borrowRecords = borrowData.data || [];
+        borrowRecords = (borrowData.data || []).map(record => {
+          const normalizedStatus = normalizeStatus(record.status);
+          return {
+            ...record,
+            status: normalizedStatus,
+            TrangThai: record.TrangThai ? normalizeStatus(record.TrangThai) : record.TrangThai,
+          };
+        });
         filteredRecords = [...borrowRecords];
       } else {
         borrowRecords = [];
@@ -1658,9 +1671,11 @@
   function showReadersDropdown(searchTerm) {
     const dropdown = document.getElementById('readerDropdown');
     const filteredReaders = allReaders.filter(reader => {
-      const isNotSelected = !selectedReader || selectedReader.MaDocGia !== reader.MaDocGia;
-      const matchesSearch = reader.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          reader.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const isNotSelected = !selectedReader || selectedReader.id !== reader.id;
+      const name = (reader.name || reader.TenDocGia || '').toString();
+      const email = (reader.email || reader.Email || '').toString();
+      const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          email.toLowerCase().includes(searchTerm.toLowerCase());
       return isNotSelected && matchesSearch;
     });
 
@@ -1668,9 +1683,9 @@
       dropdown.innerHTML = '<div class="no-results">Không tìm thấy độc giả phù hợp</div>';
     } else {
       dropdown.innerHTML = filteredReaders.map(reader => `
-        <div class="dropdown-item" onclick="selectReader(${reader.MaDocGia})">
-          <div class="item-title">${reader.name}</div>
-          <div class="item-subtitle">${reader.email || 'Chưa có email'}</div>
+        <div class="dropdown-item" onclick="selectReader('${reader.id}')">
+          <div class="item-title">${reader.name || reader.TenDocGia || 'Không rõ tên độc giả'}</div>
+          <div class="item-subtitle">${reader.email || reader.Email || 'Chưa có email'}</div>
         </div>
       `).join('');
     }
@@ -1719,7 +1734,7 @@
         </div>
       `;
       
-      hiddenInput.value = selectedReader.MaDocGia;
+      hiddenInput.value = selectedReader.MaDocGia || selectedReader.id;
     }
   }
 
@@ -1771,8 +1786,10 @@
   function showBooksDropdown(searchTerm) {
     const dropdown = document.getElementById('booksDropdown');
     const filteredBooks = allBooks.filter(book => {
-      const matchesSearch = (book.title || book.TenSach || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          ((book.author || book.tac_gia?.TenTacGia || '') && (book.author || book.tac_gia?.TenTacGia || '').toLowerCase().includes(searchTerm.toLowerCase()));
+      const title = (book.title || book.TenSach || book.TenDauSach || '').toString();
+      const author = (book.author || book.TenTacGia || book.tac_gia?.TenTacGia || '').toString();
+      const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          author.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
     });
 
@@ -1780,12 +1797,12 @@
       dropdown.innerHTML = '<div class="no-results">Không tìm thấy sách phù hợp</div>';
     } else {
       dropdown.innerHTML = filteredBooks.map(book => {
-        const isSelected = selectedBooks.find(sb => sb.id === book.MaSach);
-        const bookTitle = book.title || book.TenSach || 'Không rõ tên sách';
-        const bookAuthor = book.author || (book.tac_gia ? book.tac_gia.TenTacGia : '') || 'Chưa có tác giả';
+        const isSelected = selectedBooks.some(sb => sb.id === book.id);
+        const bookTitle = book.title || book.TenSach || book.TenDauSach || 'Không rõ tên sách';
+        const bookAuthor = book.author || book.TenTacGia || (book.tac_gia ? book.tac_gia.TenTacGia : '') || 'Chưa có tác giả';
         
         return `
-          <div class="dropdown-item ${isSelected ? 'selected' : ''}" onclick="selectBook(${book.MaSach})">
+          <div class="dropdown-item ${isSelected ? 'selected' : ''}" onclick="selectBook(${book.id})">
             <div class="item-title">${bookTitle} ${isSelected ? '<span style="color: #4299e1; font-weight: bold;">(Đã chọn)</span>' : ''}</div>
             <div class="item-subtitle">${bookAuthor}</div>
         </div>
@@ -1813,11 +1830,12 @@
   }
 
   function selectBook(bookId) {
-    const book = allBooks.find(b => b.id === bookId);
+    const id = Number(bookId);
+    const book = allBooks.find(b => Number(b.id) === id);
     if (!book) return;
 
     // Check if book is already selected
-    const existingIndex = selectedBooks.findIndex(sb => sb.id === bookId);
+    const existingIndex = selectedBooks.findIndex(sb => Number(sb.id) === id);
     if (existingIndex !== -1) {
       // Book is already selected, remove it
       selectedBooks.splice(existingIndex, 1);
@@ -1832,7 +1850,8 @@
   }
 
   function removeBook(bookId) {
-    selectedBooks = selectedBooks.filter(book => book.MaSach !== bookId);
+    const id = Number(bookId);
+    selectedBooks = selectedBooks.filter(book => Number(book.id) !== id);
     updateBooksDisplay();
   }
 
@@ -1855,13 +1874,13 @@
       
       const booksHTML = selectedBooks.map(book => `
         <div class="selected-item">
-          <span>${book.title || book.TenSach || 'Không rõ tên sách'}</span>
-          <span class="remove" onclick="removeBook(${book.MaSach})">&times;</span>
+          <span>${book.title || book.TenSach || book.TenDauSach || 'Không rõ tên sách'}</span>
+          <span class="remove" onclick="removeBook(${book.id})">&times;</span>
         </div>
       `).join('');
       
       container.innerHTML = booksHTML;
-      hiddenInput.value = selectedBooks.map(book => book.MaSach).join(',');
+      hiddenInput.value = selectedBooks.map(book => book.MaSach || book.id).join(',');
       
       console.log('Books HTML generated:', booksHTML);
       console.log('Container innerHTML after:', container.innerHTML);
@@ -1939,20 +1958,20 @@
           <td class="date-info">${formatDate(record.due_date)}</td>
           <td class="date-info">${record.return_date ? formatDate(record.return_date) : '-'}</td>
           <td>
-            <span class="status-badge status-${record.status}">${getStatusText(record.status)}</span>
+            <span class="status-badge status-${getStatusClass(record.status)}">${getStatusText(record.status)}</span>
           </td>
           <td>
             <div class="actions">
-              <button class="btn detail-btn" onclick="openDetailModal(${record.id})" title="Xem chi tiết sách">📋 Chi tiết</button>
-              <button class="btn edit-btn" onclick="openEditModal(${record.id})">✏️ Sửa</button>
+              <button class="btn detail-btn" onclick="openDetailModal(\'${record.id}\')" title="Xem chi tiết sách">📋 Chi tiết</button>
+              <button class="btn edit-btn" onclick="openEditModal(\'${record.id}\')">✏️ Sửa</button>
               ${record.status !== 'returned' ? `
-                <button class="btn extend-btn" onclick="openExtendModal(${record.id})">⏰ Gia hạn</button>
-                <button class="btn return-btn" onclick="returnAllBooksInRecord(${record.id})">↩️ Trả</button>
+                <button class="btn extend-btn" onclick="openExtendModal(\'${record.id}\')">⏰ Gia hạn</button>
+                <button class="btn return-btn" onclick="returnAllBooksInRecord(\'${record.id}\')">↩️ Trả</button>
               ` : ''}
               ${canHaveFineButton ? `
-                <button class="btn fine-btn" onclick="createFineFromRecord(${record.id})">💰 Lập phiếu phạt</button>
+                <button class="btn fine-btn" onclick="createFineFromRecord(\'${record.id}\')">💰 Lập phiếu phạt</button>
               ` : ''}
-              <button class="btn delete-btn" onclick="deleteBorrow(${record.id})" title="Xóa phiếu mượn">🗑️ Xóa</button>
+              <button class="btn delete-btn" onclick="deleteBorrow(\'${record.id}\')" title="Xóa phiếu mượn">🗑️ Xóa</button>
             </div>
           </td>
         </tr>
@@ -1978,18 +1997,57 @@
 
   function getStatusText(status) {
     const statusMap = {
-      'active': 'Đang mượn',
-      'overdue': 'Quá hạn',
-      'due-soon': 'Sắp hết hạn',
-      'returned': 'Đã trả'
+      'active': '\u0110ang m\u01b0\u1ee3n',
+      'borrowed': '\u0110ang m\u01b0\u1ee3n',
+      'overdue': 'Qu\u00e1 h\u1ea1n',
+      'due-soon': 'S\u1eafp h\u1ebft h\u1ea1n',
+      'returned': '\u0110\u00e3 tr\u1ea3'
     };
     return statusMap[status] || status;
+  }
+
+  function normalizeStatus(status) {
+    return status === 'borrowed' ? 'active' : status;
+  }
+
+  function getStatusClass(status) {
+    return normalizeStatus(status);
+  }
+
+  function getDocGiaName(docGia) {
+    if (!docGia) return 'N/A';
+    return docGia.TenDocGia || docGia.HoTen || docGia.HoTenDocGia || docGia.name || 'N/A';
+  }
+
+  function calculateDueDate(baseDate, days) {
+    if (!baseDate) return '';
+    const date = new Date(baseDate);
+    if (Number.isNaN(date.getTime())) return '';
+    date.setDate(date.getDate() + days);
+    return date.toISOString().split('T')[0];
   }
 
   function setDefaultDates() {
     const today = new Date().toISOString().split('T')[0];
     
     document.getElementById('borrowDate').value = today;
+    const dueInput = document.getElementById('borrowDueDate');
+    if (dueInput) {
+      dueInput.value = calculateDueDate(today, BORROW_DURATION_DAYS);
+    }
+  }
+
+  function handleBorrowDateChange() {
+    const borrowDate = document.getElementById('borrowDate').value;
+    const dueInput = document.getElementById('borrowDueDate');
+    if (!dueInput) return;
+    if (!borrowDate) {
+      dueInput.value = '';
+      return;
+    }
+    if (!isEditMode || !dueInput.value) {
+      dueInput.value = calculateDueDate(borrowDate, BORROW_DURATION_DAYS);
+    }
   }
 
   // Setup event listeners
@@ -2003,9 +2061,13 @@
     // Form submissions
     document.getElementById('borrowForm').addEventListener('submit', handleBorrowSubmit);
     document.getElementById('extendForm').addEventListener('submit', handleExtendSubmit);
+
+    document.getElementById('borrowDate').addEventListener('change', handleBorrowDateChange);
     
     // Date calculation for extend modal
     document.getElementById('newDueDate').addEventListener('change', calculateExtendDays);
+    document.getElementById('extendDays').addEventListener('input', syncExtendDaysToDate);
+
     
     // Modal close on outside click
     window.addEventListener('click', handleModalOutsideClick);
@@ -2248,6 +2310,16 @@
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('borrowDate').value = today;
     }
+
+    const dueDate = record.due_date || record.NgayHenTra || record.ngay_hen_tra;
+    const dueInput = document.getElementById('borrowDueDate');
+    if (dueInput) {
+      if (dueDate) {
+        dueInput.value = dueDate;
+      } else {
+        dueInput.value = calculateDueDate(document.getElementById('borrowDate').value, BORROW_DURATION_DAYS);
+      }
+    }
     
     document.getElementById('borrowModal').style.display = 'block';
   }
@@ -2338,7 +2410,7 @@
       </div>
       <div class="detail-info-row">
         <span class="detail-info-label">👤 Họ tên độc giả:</span>
-        <span class="detail-info-value">${borrowDetail.doc_gia ? borrowDetail.doc_gia.HoTen : 'N/A'}</span>
+        <span class="detail-info-value">${getDocGiaName(borrowDetail.doc_gia)}</span>
       </div>
       <div class="detail-info-row">
         <span class="detail-info-label">📅 Ngày trả:</span>
@@ -2453,7 +2525,7 @@
       </div>
       <div class="detail-info-row">
         <span class="detail-info-label">👤 Độc giả:</span>
-        <span class="detail-info-value">${borrowDetail.doc_gia ? borrowDetail.doc_gia.HoTen : 'N/A'} ${borrowDetail.doc_gia && borrowDetail.doc_gia.Email ? `(${borrowDetail.doc_gia.Email})` : ''}</span>
+        <span class="detail-info-value">${getDocGiaName(borrowDetail.doc_gia)} ${borrowDetail.doc_gia && borrowDetail.doc_gia.Email ? `(${borrowDetail.doc_gia.Email})` : ''}</span>
       </div>
       <div class="detail-info-row">
         <span class="detail-info-label">📅 Ngày mượn:</span>
@@ -2466,7 +2538,7 @@
       <div class="detail-info-row">
         <span class="detail-info-label">📊 Trạng thái:</span>
         <span class="detail-info-value">
-          <span class="status-badge status-${borrowDetail.TrangThai}">${getStatusText(borrowDetail.TrangThai)}</span>
+          <span class="status-badge status-${getStatusClass(borrowDetail.TrangThai)}">${getStatusText(borrowDetail.TrangThai)}</span>
         </span>
       </div>
     `;
@@ -2657,7 +2729,28 @@
     }
   }
 
-  function calculateExtendDays() {
+  
+  // Allow typing number of extension days: sync extendDays -> newDueDate
+  function syncExtendDaysToDate() {
+    const record = borrowRecords.find(r => r.id === currentExtendId);
+    if (!record) return;
+
+    const days = parseInt(document.getElementById('extendDays').value, 10);
+    if (!days || days < 1) return;
+
+    const currentDue = new Date(record.due_date);
+    if (isNaN(currentDue.getTime())) return;
+
+    currentDue.setDate(currentDue.getDate() + days);
+
+    const yyyy = currentDue.getFullYear();
+    const mm = String(currentDue.getMonth() + 1).padStart(2, '0');
+    const dd = String(currentDue.getDate()).padStart(2, '0');
+
+    document.getElementById('newDueDate').value = `${yyyy}-${mm}-${dd}`;
+  }
+
+function calculateExtendDays() {
     const record = borrowRecords.find(r => r.id === currentExtendId);
     if (!record) return;
     
@@ -2721,11 +2814,18 @@
       return;
     }
     
+    const dueDate = document.getElementById('borrowDueDate').value;
+    if (!dueDate) {
+      showToast('Vui lAýng ch ¯?n ngAÿy h §1n tr §œ', 'error');
+      return;
+    }
+
     try {
       const formData = {
         MaDocGia: selectedReader.MaDocGia,
         MaSach: selectedBooks.map(book => book.MaSach),
-        borrow_date: borrowDate
+        borrow_date: borrowDate,
+        due_date: dueDate
       };
       
       const url = currentEditId ? `/api/borrow-records/${currentEditId}` : '/api/borrow-records';
@@ -2871,8 +2971,8 @@
           <td style="text-align: center;">
             <select class="book-status-select" id="book-status-${book.MaSach}" onchange="updateBookStatus(${book.MaSach})">
               <option value="1">📖 Tốt</option>
-              <option value="3">⚠️ Hỏng</option>
-              <option value="4">❌ Mất</option>
+              <option value="2">⚠️ Hỏng</option>
+              <option value="3">❌ Mất</option>
             </select>
           </td>
           <td style="text-align: left; font-size: 12px; color: #718096;">
@@ -3068,3 +3168,4 @@
   }
 </script>
 @endpush
+
