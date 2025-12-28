@@ -10,6 +10,25 @@ use Illuminate\Support\Facades\DB;
 
 class SachController extends Controller
 {
+    private function generateMaPhieuNhanSach(): string
+    {
+        $prefix = 'PNS';
+        $year = date('Y');
+
+        $latest = DB::table('PHIEUNHANSACH')
+            ->where('MaPhieuNhanSach', 'like', $prefix . $year . '-%')
+            ->orderBy('MaPhieuNhanSach', 'desc')
+            ->first();
+
+        $nextNumber = 1;
+        if ($latest && isset($latest->MaPhieuNhanSach)) {
+            $lastNumber = (int)substr((string)$latest->MaPhieuNhanSach, -4);
+            $nextNumber = $lastNumber + 1;
+        }
+
+        return $prefix . $year . '-' . str_pad((string)$nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
     private function mapTinhTrangIntToText(?int $v): string
     {
         return match ($v) {
@@ -186,6 +205,13 @@ class SachController extends Controller
                     'NgayNhap' => $ngayNhap->toDateString(),
                 ]);
             }
+
+            DB::table('PHIEUNHANSACH')->insert([
+                'MaPhieuNhanSach' => $this->generateMaPhieuNhanSach(),
+                'MaSach' => $sach->MaSach,
+                'SoLuong' => $qty,
+                'NgayNhap' => $ngayNhap->toDateString(),
+            ]);
 
             DB::commit();
 

@@ -1831,23 +1831,25 @@
 
   function selectBook(bookId) {
     const id = Number(bookId);
-    const book = allBooks.find(b => Number(b.id) === id);
+    const book = allBooks.find(b => Number(b.id) === id || Number(b.MaSach) === id);
     if (!book) return;
 
-    // Check if book is already selected
-    const existingIndex = selectedBooks.findIndex(sb => Number(sb.id) === id);
-    if (existingIndex !== -1) {
-      // Book is already selected, remove it
-      selectedBooks.splice(existingIndex, 1);
+    if (isEditMode) {
+      selectedBooks = [book];
     } else {
-      // Book is not selected, add it
-    selectedBooks.push(book);
+      const existingIndex = selectedBooks.findIndex(sb => Number(sb.id) === id || Number(sb.MaSach) === id);
+      if (existingIndex !== -1) {
+        selectedBooks.splice(existingIndex, 1);
+      } else {
+        selectedBooks.push(book);
+      }
     }
 
     updateBooksDisplay();
     document.getElementById('booksSearchInput').value = '';
     showBooksDropdown('');
   }
+
 
   function removeBook(bookId) {
     const id = Number(bookId);

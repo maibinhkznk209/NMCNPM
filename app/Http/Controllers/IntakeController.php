@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class IntakeController extends Controller
 {
@@ -38,12 +39,54 @@ class IntakeController extends Controller
             ->orderByDesc('ds.MaDauSach')
             ->get();
 
+        $phieuNhanDauSachItems = collect();
+        $phieuNhanSachItems = collect();
+
+        if (Schema::hasTable('PHIEUNHANDAUSACH')) {
+            $phieuNhanDauSachItems = DB::table('PHIEUNHANDAUSACH as p')
+                ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 'p.MaDauSach')
+                ->select([
+                    'p.MaPhieuNhanDauSach',
+                    'p.NgayNhap',
+                    'ds.MaDauSach',
+                    'ds.TenDauSach',
+                ])
+                ->orderByDesc('p.NgayNhap')
+                ->orderByDesc('p.MaPhieuNhanDauSach')
+                ->limit(20)
+                ->get();
+        }
+
+        if (Schema::hasTable('PHIEUNHANSACH')) {
+            $phieuNhanSachItems = DB::table('PHIEUNHANSACH as p')
+                ->join('SACH as s', 's.MaSach', '=', 'p.MaSach')
+                ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
+                ->leftJoin('NHAXUATBAN as nxb', 'nxb.MaNXB', '=', 's.MaNXB')
+                ->select([
+                    'p.MaPhieuNhanSach',
+                    'p.NgayNhap',
+                    'p.SoLuong',
+                    's.MaSach',
+                    'ds.TenDauSach',
+                    'nxb.TenNXB',
+                    's.NamXuatBan',
+                    's.TriGia',
+                ])
+                ->orderByDesc('p.NgayNhap')
+                ->orderByDesc('p.MaPhieuNhanSach')
+                ->limit(20)
+                ->get();
+        }
+
+
         return view('intake', [
             'theLoais' => $theLoais,
             'tacGias' => $tacGias,
             'dauSachs' => $dauSachs,
             'nhaXuatBans' => $nhaXuatBans,
             'dauSachItems' => $dauSachItems,
+            'phieuNhanDauSachItems' => $phieuNhanDauSachItems,
+            'phieuNhanSachItems' => $phieuNhanSachItems,
         ]);
     }
 }
