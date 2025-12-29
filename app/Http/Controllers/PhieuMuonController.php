@@ -576,7 +576,6 @@ class PhieuMuonController extends Controller
     {
         try {
             DB::beginTransaction();
-
             $validated = $this->validateBorrowRequest($request);
 
             $maDocGia  = $validated['MaDocGia'];
@@ -589,12 +588,9 @@ class PhieuMuonController extends Controller
 
             $maPhieuMuon = $this->generateMaPhieuMuon();
 
-            DB::table('PHIEUMUON')->insert([
-                'MaPhieuMuon' => $maPhieuMuon,
-                'MaDocGia' => $maDocGia,
-                'NgayMuon' => $borrowDate->toDateString(),
-                'NgayHenTra' => $dueDate->toDateString(),
-            ]);
+            // Mỗi phiếu mượn chỉ 1 cuốn sách.
+            // Nếu người dùng chọn nhiều sách, hệ thống sẽ tạo nhiều phiếu mượn tương ứng.
+            $created = [];
 
             foreach ($maSachArr as $maSach) {
                 // quan trọng: đừng ép int nếu mã là string
@@ -606,14 +602,24 @@ class PhieuMuonController extends Controller
                     'NgayTra' => null,
                     'TienPhat' => 0,
                 ]);
+
+                $created[] = $maPhieuMuon;
             }
 
             DB::commit();
 
+            $count = count($created);
+            $msg = $count > 1
+                ? ('Tạo ' . $count . ' phiếu mượn thành công')
+                : 'Tạo phiếu mượn thành công';
+
             return response()->json([
                 'success' => true,
-                'message' => 'Tạo phiếu mượn thành công',
-                'data' => ['MaPhieuMuon' => $maPhieuMuon],
+                'message' => $msg,
+                'data' => [
+                    'created' => $created,
+                    'MaPhieuMuon' => $created[0] ?? null,
+                ],
             ], 201);
         } catch (ValidationException $e) {
             DB::rollBack();
@@ -644,14 +650,22 @@ class PhieuMuonController extends Controller
                 throw new Exception('Không tìm thấy phiếu mượn');
             }
 
-            $validated = $this->validateBorrowRequest($request);
+                        $validated = $this->validateBorrowRequest($request);
             $maDocGia = $validated['MaDocGia'];
             $maSachArr = $validated['MaSach'];
             $borrowDate = $validated['borrow_date'];
             $dueDate = $validated['due_date'] ?? $borrowDate->copy()->addDays($this->getBorrowDurationDays());
 
+            // Mỗi phiếu mượn chỉ được 1 cuốn sách.
+            if (count($maSachArr) !== 1) {
+                throw new Exception('Mỗi phiếu mượn chỉ được chọn đúng 1 cuốn sách');
+            }
+
+            $maSachNew = (int) $maSachArr[0];
+
             // Replace details (simple approach)
             $oldSach = DB::table('CT_PHIEUMUON')->where('MaPhieuMuon', $id)->pluck('MaSach')->all();
+
 
             // Hoàn trả tồn kho cho các sách cũ (trong trường hợp sửa phiếu mượn trước khi trả)
             foreach ($oldSach as $oldMaSach) {
@@ -660,17 +674,14 @@ class PhieuMuonController extends Controller
 
             DB::table('CT_PHIEUMUON')->where('MaPhieuMuon', $id)->delete();
 
-            foreach ($maSachArr as $maSach) {
-                // Cập nhật tồn kho: đánh dấu 1 cuốn sách đang mượn
-                $this->markBorrowed((int)$maSach);
+            $this->markBorrowed($maSachNew);
 
-                DB::table('CT_PHIEUMUON')->insert([
-                    'MaPhieuMuon' => $id,
-                    'MaSach' => $maSach,
-                    'NgayTra' => null,
-                    'TienPhat' => 0,
-                ]);
-            }
+            DB::table('CT_PHIEUMUON')->insert([
+                'MaPhieuMuon' => $id,
+                'MaSach' => $maSachNew,
+                'NgayTra' => null,
+                'TienPhat' => 0,
+            ]);
 
             DB::table('PHIEUMUON')->where('MaPhieuMuon', $id)->update([
                 'MaDocGia' => $maDocGia,

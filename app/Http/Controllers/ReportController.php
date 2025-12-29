@@ -114,7 +114,6 @@ class ReportController extends Controller
         ]);
     }
 
-
     public function overdueBooks(Request $request): JsonResponse
     {
         $dateStr = $request->query('date');
@@ -135,6 +134,7 @@ class ReportController extends Controller
             ], 400);
         }
 
+        // Báo cáo trả trễ theo ngày: liệt kê các sách được trả trong ngày được chọn nhưng trả sau hạn.
         $rows = DB::table('CT_PHIEUMUON as ct')
         ->join('PHIEUMUON as pm', 'pm.MaPhieuMuon', '=', 'ct.MaPhieuMuon')
         ->join('DOCGIA as dg', 'dg.MaDocGia', '=', 'pm.MaDocGia')
@@ -201,8 +201,6 @@ class ReportController extends Controller
     ], 200);
     }
 
-
-  
     public function exportGenreStatistics(Request $request)
     {
         $res = $this->genreStatistics($request);

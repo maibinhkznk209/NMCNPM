@@ -9,6 +9,25 @@ use Illuminate\Support\Facades\DB;
 
 class DauSachController extends Controller
 {
+    private function generateMaPhieuNhanDauSach(): string
+    {
+        $prefix = 'PNDS';
+        $year = date('Y');
+
+        $latest = DB::table('PHIEUNHANDAUSACH')
+            ->where('MaPhieuNhanDauSach', 'like', $prefix . $year . '-%')
+            ->orderBy('MaPhieuNhanDauSach', 'desc')
+            ->first();
+
+        $nextNumber = 1;
+        if ($latest && isset($latest->MaPhieuNhanDauSach)) {
+            $lastNumber = (int)substr((string)$latest->MaPhieuNhanDauSach, -4);
+            $nextNumber = $lastNumber + 1;
+        }
+
+        return $prefix . $year . '-' . str_pad((string)$nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
     public function index(Request $request)
     {
         $driver = DB::getDriverName();
@@ -70,6 +89,7 @@ class DauSachController extends Controller
             'tacGias' => 'nullable',
             'MaTacGia' => 'nullable',
             'MaTacGia.*' => 'nullable',
+            'NgayNhap' => 'required|date',
         ], [
             'TenDauSach.required' => 'Vui lòng nhập tên đầu sách',
             'MaTheLoai.required' => 'Vui lòng chọn thể loại',
@@ -100,15 +120,21 @@ class DauSachController extends Controller
             return back()->withInput()->with('error', 'Có tác giả không tồn tại');
         }
 
-        $now = Carbon::now();
+        $ngayNhap = Carbon::parse((string)$request->get('NgayNhap'));
 
         DB::beginTransaction();
         try {
             $dauSach = DauSach::create([
                 'TenDauSach' => $ten,
                 'MaTheLoai' => $maTheLoai,
-                'NgayNhap' => $now,
+                'NgayNhap' => $ngayNhap,
             ]);
+            DB::table('PHIEUNHANDAUSACH')->insert([
+                'MaPhieuNhanDauSach' => $this->generateMaPhieuNhanDauSach(),
+                'MaDauSach' => $dauSach->MaDauSach,
+                'NgayNhap' => $ngayNhap->toDateString(),
+            ]);
+
 
             if (method_exists($dauSach, 'DS_TG')) {
                 $dauSach->DS_TG()->sync($uniqueTacGia);

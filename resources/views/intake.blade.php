@@ -177,6 +177,36 @@
       @endif
     </div>
   </div>
+  @if(($phieuNhanDauSachItems ?? collect())->isNotEmpty())
+  <div class="card">
+    <div class="card-hd">Lịch Sử Phiếu Nhận Đầu Sách</div>
+    <div class="card-bd">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 18%;">Mã phiếu</th>
+              <th style="width: 14%;">Ngày nhập</th>
+              <th style="width: 10%;">Mã đầu sách</th>
+              <th>Tên đầu sách</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach($phieuNhanDauSachItems as $p)
+              <tr>
+                <td><strong>{{ $p->MaPhieuNhanDauSach }}</strong></td>
+                <td>{{ \Carbon\Carbon::parse($p->NgayNhap)->format('d/m/Y') }}</td>
+                <td style="text-align:center;">{{ $p->MaDauSach }}</td>
+                <td>{{ $p->TenDauSach }}</td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  @endif
+
 
 <div class="card">
     <div class="card-hd">Phiếu Nhận Sách</div>
@@ -240,6 +270,42 @@
       </form>
     </div>
   </div>
+  @if(($phieuNhanSachItems ?? collect())->isNotEmpty())
+  <div class="card">
+    <div class="card-hd">Lịch Sử Phiếu Nhận Sách</div>
+    <div class="card-bd">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 16%;">Mã phiếu</th>
+              <th style="width: 14%;">Ngày nhập</th>
+              <th style="width: 10%;">Mã sách</th>
+              <th>Tên đầu sách</th>
+              <th style="width: 16%;">NXB</th>
+              <th style="width: 10%;">Năm XB</th>
+              <th style="width: 10%;">SL</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach($phieuNhanSachItems as $p)
+              <tr>
+                <td><strong>{{ $p->MaPhieuNhanSach }}</strong></td>
+                <td>{{ \Carbon\Carbon::parse($p->NgayNhap)->format('d/m/Y') }}</td>
+                <td style="text-align:center;">{{ $p->MaSach }}</td>
+                <td>{{ $p->TenDauSach }}</td>
+                <td>{{ $p->TenNXB ?? '-' }}</td>
+                <td style="text-align:center;">{{ $p->NamXuatBan ?? '-' }}</td>
+                <td style="text-align:center;">{{ $p->SoLuong }}</td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  @endif
+
 
 </div>
 @endsection
