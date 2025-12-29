@@ -63,6 +63,7 @@ class TaiKhoanController extends Controller
                 'HoVaTen' => 'required|string|max:100',
                 'Email' => 'required|email|max:150|unique:TAIKHOAN,Email',
                 'MatKhau' => 'required|string|min:6',
+                'VaiTroId' => 'required|exists:VAITRO,id',
             ], [
                 'HoVaTen.required' => 'Họ và tên là bắt buộc',
                 'HoVaTen.max' => 'Họ và tên không được quá 100 ký tự',
@@ -72,6 +73,8 @@ class TaiKhoanController extends Controller
                 'Email.max' => 'Email không được quá 150 ký tự',
                 'MatKhau.required' => 'Mật khẩu là bắt buộc',
                 'MatKhau.min' => 'Mật khẩu phải có ít nhất 6 ký tự',
+                'VaiTroId.required' => 'Vai trò là bắt buộc',
+                'VaiTroId.exists' => 'Vai trò không hợp lệ',
             ]);
 
             if ($validator->fails()) {
@@ -88,17 +91,11 @@ class TaiKhoanController extends Controller
 
             DB::beginTransaction();
 
-            // Mặc định tạo tài khoản với vai trò "Thủ thư"
-            $thuThuRole = VaiTro::where('VaiTro', 'Thủ thư')->first();
-            if (!$thuThuRole) {
-                throw new Exception('Không tìm thấy vai trò Thủ thư');
-            }
-
             $taiKhoan = TaiKhoan::create([
                 'HoVaTen' => $request->HoVaTen,
                 'Email' => $request->Email,
                 'MatKhau' => Hash::make($request->MatKhau),
-                'vaitro_id' => $thuThuRole->id,
+                'vaitro_id' => $request->VaiTroId,
             ]);
 
             // Load relationship for response
@@ -192,6 +189,9 @@ class TaiKhoanController extends Controller
             }
 
             $taiKhoan->update($updateData);
+
+            // Set default VaiTroId if not provided
+            $taiKhoan->VaiTroId = $request->input('VaiTroId') ?? 2; // Mặc định là Thủ thư nếu không gửi
 
             // Load relationship for response
             $taiKhoan->load('vaiTro');
