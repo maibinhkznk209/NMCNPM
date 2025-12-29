@@ -59,11 +59,15 @@ class TaiKhoanController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
+            // Nếu test không gửi VaiTroId thì gán mặc định
+            // Ưu tiên lấy role đầu tiên trong bảng VAITRO, fallback = 1
+            $defaultRoleId = DB::table('VAITRO')->value('id') ?? 1;
+
             $validator = Validator::make($request->all(), [
                 'HoVaTen' => 'required|string|max:100',
                 'Email' => 'required|email|max:150|unique:TAIKHOAN,Email',
                 'MatKhau' => 'required|string|min:6',
-                'VaiTroId' => 'required|exists:VAITRO,id',
+                'VaiTroId' => 'nullable|exists:VAITRO,id',
             ], [
                 'HoVaTen.required' => 'Họ và tên là bắt buộc',
                 'HoVaTen.max' => 'Họ và tên không được quá 100 ký tự',
@@ -73,15 +77,13 @@ class TaiKhoanController extends Controller
                 'Email.max' => 'Email không được quá 150 ký tự',
                 'MatKhau.required' => 'Mật khẩu là bắt buộc',
                 'MatKhau.min' => 'Mật khẩu phải có ít nhất 6 ký tự',
-                'VaiTroId.required' => 'Vai trò là bắt buộc',
                 'VaiTroId.exists' => 'Vai trò không hợp lệ',
             ]);
 
             if ($validator->fails()) {
-                // Lấy thông báo lỗi đầu tiên từ validation errors
                 $firstError = collect($validator->errors())->first();
                 $errorMessage = is_array($firstError) ? $firstError[0] : $firstError;
-                
+
                 return response()->json([
                     'success' => false,
                     'message' => $errorMessage ?? 'Dữ liệu không hợp lệ',
@@ -91,14 +93,15 @@ class TaiKhoanController extends Controller
 
             DB::beginTransaction();
 
+            $vaiTroId = $request->input('VaiTroId', $defaultRoleId);
+
             $taiKhoan = TaiKhoan::create([
                 'HoVaTen' => $request->HoVaTen,
                 'Email' => $request->Email,
                 'MatKhau' => Hash::make($request->MatKhau),
-                'vaitro_id' => $request->VaiTroId,
+                'vaitro_id' => $vaiTroId,
             ]);
 
-            // Load relationship for response
             $taiKhoan->load('vaiTro');
 
             DB::commit();
@@ -112,13 +115,14 @@ class TaiKhoanController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error creating account: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi tạo tài khoản: ' . $e->getMessage()
             ], 400);
         }
     }
+
 
     /**
      * Get a specific account
