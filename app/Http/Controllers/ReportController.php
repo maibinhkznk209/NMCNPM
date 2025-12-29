@@ -136,63 +136,69 @@ class ReportController extends Controller
         }
 
         $rows = DB::table('CT_PHIEUMUON as ct')
-            ->join('PHIEUMUON as pm', 'pm.MaPhieuMuon', '=', 'ct.MaPhieuMuon')
-            ->join('DOCGIA as dg', 'dg.MaDocGia', '=', 'pm.MaDocGia')
-            ->join('SACH as s', 's.MaSach', '=', 'ct.MaSach')
-            ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
-            ->whereDate('ct.NgayTra', '=', $reportDate->toDateString())
-            ->whereColumn('ct.NgayTra', '>', 'pm.NgayHenTra')
-            ->select([
-                'ds.TenDauSach as book_title',
-                'dg.TenDocGia as reader_name',
-                'pm.NgayMuon as borrow_date',
-                'pm.NgayHenTra as due_date',
-                'ct.NgayTra as return_date',
-            ])
-            ->orderBy('ct.NgayTra')
-            ->orderBy('pm.MaPhieuMuon')
-            ->get();
+        ->join('PHIEUMUON as pm', 'pm.MaPhieuMuon', '=', 'ct.MaPhieuMuon')
+        ->join('DOCGIA as dg', 'dg.MaDocGia', '=', 'pm.MaDocGia')
+        ->join('SACH as s', 's.MaSach', '=', 'ct.MaSach')
+        ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
+        // quá hạn tính tới reportDate: hạn trả < reportDate
+        ->whereDate('pm.NgayHenTra', '<', $reportDate->toDateString())
+        // và (chưa trả) hoặc (đã trả nhưng trả trễ)
+        ->where(function ($q) {
+            $q->whereNull('ct.NgayTra')
+            ->orWhereColumn('ct.NgayTra', '>', 'pm.NgayHenTra');
+        })
+        ->select([
+            'ds.TenDauSach as book_title',
+            'dg.TenDocGia as reader_name',
+            'pm.NgayMuon as borrow_date',
+            'pm.NgayHenTra as due_date',
+            'ct.NgayTra as return_date',
+            'pm.MaPhieuMuon as borrow_id',
+        ])
+        ->orderBy('pm.NgayHenTra')
+        ->orderBy('pm.MaPhieuMuon')
+        ->get();
 
-        $finePerDay = 1000;
-        $overdueBooks = $rows->map(function ($r) use ($reportDate, $finePerDay) {
-            $dueDate = $r->due_date ? Carbon::parse($r->due_date)->startOfDay() : null;
-            $returnDate = $r->return_date ? Carbon::parse($r->return_date)->startOfDay() : $reportDate;
-            $lateOverdueDays = 0;
-            if ($dueDate && $returnDate->gt($dueDate)) {
-                $lateOverdueDays = (int) $dueDate->diffInDays($returnDate);
-            }
-            $lateStatus = 'Da tra tre ngay ' . $returnDate->format('d/m/Y');
-            $overdueDays = $dueDate ? $dueDate->diffInDays($reportDate) : 0;
-            if ($overdueDays < 0) {
-                $overdueDays = 0;
-            }
+    $finePerDay = 1000;
 
-            $status = 'Chưa trả';
-            if (!empty($r->return_date)) {
-                $status = 'Chưa trả (đã trả ngày '.Carbon::parse($r->return_date)->format('d/m/Y').')';
-            }
+    $overdueBooks = $rows->map(function ($r) use ($reportDate, $finePerDay) {
+        $dueDate = Carbon::parse($r->due_date)->startOfDay();
 
-            return [
-                'book_title' => (string) ($r->book_title ?? ''),
-                'reader_name' => (string) ($r->reader_name ?? ''),
-                'borrow_date' => $r->borrow_date ? Carbon::parse($r->borrow_date)->toDateString() : '',
-                'overdue_days' => (int) $lateOverdueDays,
-                'status' => $lateStatus,
-                'fine_amount' => (int) ($lateOverdueDays * $finePerDay),
-            ];
-        })->values();
+        // Nếu đã trả thì tính theo ngày trả, chưa trả thì tính tới reportDate
+        $endDate = !empty($r->return_date)
+            ? Carbon::parse($r->return_date)->startOfDay()
+            : $reportDate;
 
-        $totalFine = (int) $overdueBooks->sum('fine_amount');
+        $overdueDays = 0;
+        if ($endDate->gt($dueDate)) {
+            $overdueDays = $dueDate->diffInDays($endDate);
+        }
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'date' => $reportDate->toDateString(),
-                'total_overdue' => $overdueBooks->count(),
-                'total_fine' => $totalFine,
-                'overdue_books' => $overdueBooks->all(),
-            ],
-        ], 200);
+        $status = empty($r->return_date)
+            ? 'Chưa trả'
+            : ('Đã trả ngày ' . Carbon::parse($r->return_date)->format('d/m/Y'));
+
+        return [
+            'book_title' => (string) ($r->book_title ?? ''),
+            'reader_name' => (string) ($r->reader_name ?? ''),
+            'borrow_date' => $r->borrow_date ? Carbon::parse($r->borrow_date)->toDateString() : '',
+            'overdue_days' => (int) $overdueDays,
+            'status' => $status,
+            'fine_amount' => (int) ($overdueDays * $finePerDay),
+        ];
+    })->values();
+
+    $totalFine = (int) $overdueBooks->sum('fine_amount');
+
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'date' => $reportDate->toDateString(),
+            'total_overdue' => $overdueBooks->count(),
+            'total_fine' => $totalFine,
+            'overdue_books' => $overdueBooks->all(),
+        ],
+    ], 200);
     }
 
 

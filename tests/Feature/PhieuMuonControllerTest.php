@@ -93,7 +93,7 @@ class PhieuMuonControllerTest extends TestCase
             'MaSach' => [$this->maSach1],
             'borrow_date' => now()->toDateString(),
         ]);
-
+        dump($resp->status(), $resp->json());
         $resp->assertStatus(201)
             ->assertJsonPath('success', true);
 

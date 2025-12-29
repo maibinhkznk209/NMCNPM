@@ -145,17 +145,17 @@ class DauSachController extends Controller
         $request->validate([
             'TenDauSach' => 'required|string|max:255',
         ], [
-            'TenDauSach.required' => 'Vui lAýng nh §-p tA¦n Ž` §u sA­ch',
+            'TenDauSach.required' => 'Vui lòng nhập tên đầu sách',
         ]);
 
         $ten = trim((string)$request->get('TenDauSach'));
         if ($ten === '') {
-            return back()->withInput()->with('error', 'Vui lAýng nh §-p tA¦n Ž` §u sA­ch');
+            return back()->withInput()->with('error', 'Vui lòng nhập tên đầu sách');
         }
 
         $exists = DB::table('DAUSACH')->where('MaDauSach', $id)->exists();
         if (!$exists) {
-            return back()->with('error', 'KhA'ng tAªm th §y Ž` §u sA­ch');
+            return back()->with('error', 'Không tìm thấy đầu sách');
         }
 
         DB::table('DAUSACH')->where('MaDauSach', $id)->update([
@@ -166,19 +166,19 @@ class DauSachController extends Controller
             return response()->json(['success' => true]);
         }
 
-        return redirect()->back()->with('success', 'Ž?Aœ c §-p nh §-t tA¦n Ž` §u sA­ch');
+        return redirect()->back()->with('success', 'Đã cập nhật tên đầu sách');
     }
 
     public function destroy(Request $request, int $id)
     {
         $exists = DB::table('DAUSACH')->where('MaDauSach', $id)->exists();
         if (!$exists) {
-            return back()->with('error', 'KhA'ng tAªm th §y Ž` §u sA­ch');
+            return back()->with('error', 'Không tìm thấy đầu sách');
         }
 
         $hasSach = DB::table('SACH')->where('MaDauSach', $id)->exists();
         if ($hasSach) {
-            return back()->with('error', 'KhA'ng th ¯Ÿ xA3a Ž` §u sA­ch vA¼ nA3y vA¼ nA3y Ž`ang cA3 sA­ch liAªn quan');
+            return back()->with('error', 'Không thể xóa đầu sách vì đầu sách đang có sách liên quan');
         }
 
         DB::beginTransaction();
@@ -195,7 +195,7 @@ class DauSachController extends Controller
             return response()->json(['success' => true]);
         }
 
-        return redirect()->back()->with('success', 'Ž?Aœ xA3a Ž` §u sA­ch');
+        return redirect()->back()->with('success', 'Đã xóa đầu sách');
     }
 
     private function normalizeIdList($value): array
