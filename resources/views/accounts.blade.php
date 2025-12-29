@@ -357,6 +357,23 @@
       box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
     }
 
+    .form-group select {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 16px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .form-group select:focus {
+      outline: none;
+      border-color: #4299e1;
+      box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+    }
+
     .modal-buttons {
       display: flex;
       gap: 15px;
@@ -660,10 +677,12 @@
                 <small style="color: #718096; font-size: 12px;" id="passwordConfirmNote">Để trống nếu không muốn thay đổi mật khẩu</small>
             </div>
             <div class="form-group">
-                <label>Vai Trò</label>
-                <div style="padding: 12px 15px; background: #f7fafc; border-radius: 10px; color: #4a5568;">
-                    <strong>Thủ thư</strong> (Mặc định - không thể thay đổi)
-                </div>
+                <label for="accountRole">Vai Trò <span style="color: red;">*</span></label>
+                <select id="accountRole" name="VaiTroId" required style="width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; background: white; cursor: pointer; transition: all 0.3s ease;">
+                    <option value="">-- Chọn Vai Trò --</option>
+                    <option value="1">Admin</option>
+                    <option value="2">Thủ thư</option>
+                </select>
             </div>
             <div class="modal-buttons">
                 <button type="button" class="cancel-btn" onclick="closeModal()">Hủy</button>
