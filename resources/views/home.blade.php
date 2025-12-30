@@ -2,6 +2,7 @@
 
 @section('title', 'Tra cứu sách - Hệ thống thư viện')
 
+
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/home.css') }}">
   <style>
