@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use App\Models\PhieuMuon;
 use App\Models\Sach;
+use App\Models\QuyDinh;
 
 class CT_PHIEUMUON extends Model
 {
@@ -106,7 +107,7 @@ class CT_PHIEUMUON extends Model
             
             $dueDate = $this->getDueDate();
             $overdueDays = $dueDate->diffInDays(Carbon::now()); // Correct order to avoid negative
-            $finePerDay = 1000; // 1,000 VND per day
+            $finePerDay = QuyDinh::getLateFinePerDay();
             
             return $overdueDays * $finePerDay;
         } else {
@@ -119,7 +120,7 @@ class CT_PHIEUMUON extends Model
             }
             
             $overdueDays = $dueDate->diffInDays($returnDate); // Correct order to avoid negative
-            $finePerDay = 1000; // 1,000 VND per day
+            $finePerDay = QuyDinh::getLateFinePerDay();
             
             return $overdueDays * $finePerDay;
         }

@@ -95,8 +95,7 @@ php artisan migrate:fresh
 
 php artisan db:seed
 
-# Chạy tests (tùy chọn)
-php artisan test
+
 ```
 
 #### Bước 5: Khởi Động Ứng Dụng

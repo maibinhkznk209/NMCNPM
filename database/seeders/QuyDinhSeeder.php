@@ -38,6 +38,10 @@ class QuyDinhSeeder extends Seeder
                 'TenThamSo' => 'SoNamXuatBan',
                 'GiaTri' => '8',
             ],
+            [
+                'TenThamSo' => 'TienPhatTreNgay',
+                'GiaTri' => '1000',
+            ],
         ];
 
         DB::table('THAMSO')->insert($thamSoData);

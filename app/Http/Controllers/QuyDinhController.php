@@ -23,6 +23,10 @@ class QuyDinhController extends Controller
      */
     public function index(Request $request)
     {
+        QuyDinh::firstOrCreate(
+            ['TenThamSo' => QuyDinh::LATE_FINE_PER_DAY],
+            ['GiaTri' => 1000]
+        );
         $quyDinhs = QuyDinh::orderBy('TenThamSo')->get();
 
         // Nếu là AJAX/JSON request, trả về JSON
@@ -67,7 +71,7 @@ class QuyDinhController extends Controller
             'GiaTri' => [
                 'required',
                 'numeric',
-                'min:1',
+                'min:0',
                 function ($attribute, $value, $fail) use ($quyDinh) {
                     $tenThamSo = $quyDinh->TenThamSo;
 
@@ -75,6 +79,8 @@ class QuyDinhController extends Controller
                         if ($value < 1 || $value > 100) $fail('Tuổi phải từ 1 đến 100');
                     } elseif (str_contains($tenThamSo, 'ThoiHan')) {
                         if ($value < 1 || $value > 120) $fail('Số tháng phải từ 1 đến 120');
+                    } elseif (str_contains($tenThamSo, 'TienPhat')) {
+                        if ($value < 1000 || $value > 1000000) $fail('Số tiền phạt phải từ 1000 đến 1000000');
                     } elseif (str_contains($tenThamSo, 'Ngay')) {
                         if ($value < 1 || $value > 365) $fail('Số ngày phải từ 1 đến 365');
                     } elseif (str_contains($tenThamSo, 'Sach')) {
@@ -140,26 +146,30 @@ class QuyDinhController extends Controller
 
         if (str_contains($tenThamSo, 'Tuoi')) {
             $validationInfo['max'] = 100;
-            $validationInfo['unit'] = 'tuổi';
-            $validationInfo['description'] = 'Độ tuổi hợp lệ (1-100)';
+            $validationInfo['unit'] = 'tuoi';
+            $validationInfo['description'] = 'Tuoi hop le (1-100)';
         } elseif (str_contains($tenThamSo, 'ThoiHan')) {
             $validationInfo['max'] = 120;
-            $validationInfo['unit'] = 'tháng';
-            $validationInfo['description'] = 'Số tháng hợp lệ (1-120)';
+            $validationInfo['unit'] = 'thang';
+            $validationInfo['description'] = 'So thang hop le (1-120)';
         } elseif (str_contains($tenThamSo, 'Ngay')) {
             $validationInfo['max'] = 365;
-            $validationInfo['unit'] = 'ngày';
-            $validationInfo['description'] = 'Số ngày hợp lệ (1-365)';
+            $validationInfo['unit'] = 'ngay';
+            $validationInfo['description'] = 'So ngay hop le (1-365)';
+        } elseif (str_contains($tenThamSo, 'TienPhat')) {
+            $validationInfo['min'] = 1000;
+            $validationInfo['max'] = 1000000;
+            $validationInfo['unit'] = 'VND/ngay';
+            $validationInfo['description'] = 'So tien phat moi ngay tre (0-1,000,000)';
         } elseif (str_contains($tenThamSo, 'Sach')) {
             $validationInfo['max'] = 50;
-            $validationInfo['unit'] = 'cuốn';
-            $validationInfo['description'] = 'Số sách hợp lệ (1-50)';
+            $validationInfo['unit'] = 'cuon';
+            $validationInfo['description'] = 'So sach hop le (1-50)';
         } elseif (str_contains($tenThamSo, 'Nam')) {
             $validationInfo['max'] = 50;
-            $validationInfo['unit'] = 'năm';
-            $validationInfo['description'] = 'Số năm hợp lệ (1-50)';
+            $validationInfo['unit'] = 'nam';
+            $validationInfo['description'] = 'So nam hop le (1-50)';
         }
-
         return response()->json([
             'success' => true,
             'data' => $validationInfo,

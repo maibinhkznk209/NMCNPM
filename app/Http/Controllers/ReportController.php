@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Models\QuyDinh;
 
 class ReportController extends Controller
 {
@@ -159,7 +160,7 @@ class ReportController extends Controller
         ->orderBy('pm.MaPhieuMuon')
         ->get();
 
-    $finePerDay = 1000;
+    $finePerDay = QuyDinh::getLateFinePerDay();
 
     $overdueBooks = $rows->map(function ($r) use ($reportDate, $finePerDay) {
         $dueDate = Carbon::parse($r->due_date)->startOfDay();

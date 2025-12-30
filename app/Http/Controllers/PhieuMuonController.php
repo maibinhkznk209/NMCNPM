@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use App\Models\QuyDinh;
 
 class PhieuMuonController extends Controller
 {
@@ -180,7 +181,7 @@ class PhieuMuonController extends Controller
             return 0;
         }
         $daysLate = (int)$dueDate->diffInDays($returnDate);
-        return $daysLate * 1000;
+        return $daysLate * QuyDinh::getLateFinePerDay();
     }
 
 

@@ -25,6 +25,7 @@ class QuyDinh extends Model
     const MAX_BOOKS_PER_BORROW = 'SoSachToiDa';
     const BORROW_DURATION_DAYS = 'NgayMuonToiDa';
     const BOOK_PUBLICATION_YEARS = 'SoNamXuatBan';
+    const LATE_FINE_PER_DAY = 'TienPhatTreNgay';
 
     /**
      * Get parameter value by code name
@@ -85,5 +86,10 @@ class QuyDinh extends Model
     public static function getBookPublicationYears()
     {
         return (int) static::getValue('SoNamXuatBan', 8);
+    }
+
+    public static function getLateFinePerDay()
+    {
+        return (int) static::getValue('TienPhatTreNgay', 1000);
     }
 }

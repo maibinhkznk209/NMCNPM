@@ -154,6 +154,10 @@
         background-color: #fce4ec; 
         color: #c2185b;
     }
+    .icon-money {
+        background-color: #fff5f5;
+        color: #c53030;
+    }
     
     .regulation-content {
         display: flex;
@@ -457,29 +461,33 @@
 
         if (tenThamSo.includes('Tuoi')) {
             info.max = 100;
-            info.unit = 'tuổi';
-            info.description = 'Độ tuổi hợp lệ (1-100)';
+            info.unit = 'tuoi';
+            info.description = 'Tuổi hợp lệ (1-100)';
         } else if (tenThamSo.includes('ThoiHan')) {
             info.max = 120;
-            info.unit = 'tháng';
+            info.unit = 'thang';
             info.description = 'Số tháng hợp lệ (1-120)';
+        } else if (tenThamSo.includes('TienPhat')) {
+            info.min = 1000;
+            info.max = 1000000;
+            info.unit = 'VND/ngày';
+            info.description = 'Số tiền phạt mỗi ngày trễ (0-1,000,000)';
         } else if (tenThamSo.includes('Ngay')) {
             info.max = 365;
-            info.unit = 'ngày';
+            info.unit = 'ngay';
             info.description = 'Số ngày hợp lệ (1-365)';
         } else if (tenThamSo.includes('Sach')) {
             info.max = 50;
-            info.unit = 'cuốn';
+            info.unit = 'cuon';
             info.description = 'Số sách hợp lệ (1-50)';
         } else if (tenThamSo.includes('Nam')) {
             info.max = 50;
-            info.unit = 'năm';
+            info.unit = 'nam';
             info.description = 'Số năm hợp lệ (1-50)';
         }
 
         return info;
     }
-
     // Modal functions
     window.openEditModal = function(id) {
         const regulation = regulations.find(r => r.id === id);
@@ -585,6 +593,7 @@ function getRegulationIcon($tenThamSo) {
     if (str_contains($tenThamSo, 'ThoiHan')) return '📅';
     if (str_contains($tenThamSo, 'Sach')) return '📚';
     if (str_contains($tenThamSo, 'Ngay')) return '⏰';
+    if (str_contains($tenThamSo, 'TienPhat')) return '$';
     if (str_contains($tenThamSo, 'Nam')) return '📖';
     return '⚙️';
 }
@@ -594,6 +603,7 @@ function getRegulationIconClass($tenThamSo) {
     if (str_contains($tenThamSo, 'ThoiHan')) return 'icon-card';
     if (str_contains($tenThamSo, 'Sach')) return 'icon-books';
     if (str_contains($tenThamSo, 'Ngay')) return 'icon-days';
+    if (str_contains($tenThamSo, 'TienPhat')) return 'icon-money';
     if (str_contains($tenThamSo, 'Nam')) return 'icon-years';
     return 'icon-age';
 }
@@ -602,6 +612,7 @@ function getRegulationUnit($tenThamSo) {
     if (str_contains($tenThamSo, 'Tuoi')) return 'tuổi';
     if (str_contains($tenThamSo, 'ThoiHan')) return 'tháng';
     if (str_contains($tenThamSo, 'Sach')) return 'cuốn';
+    if (str_contains($tenThamSo, 'TienPhat')) return 'VND/ngày';
     if (str_contains($tenThamSo, 'Ngay')) return 'ngày';
     if (str_contains($tenThamSo, 'Nam')) return 'năm';
     return '';
@@ -613,6 +624,7 @@ function getRegulationDescription($tenThamSo) {
     if (str_contains($tenThamSo, 'ThoiHanThe')) return 'Thời gian hiệu lực của thẻ độc giả';
     if (str_contains($tenThamSo, 'SoSachToiDa')) return 'Số sách tối đa mà một độc giả có thể mượn cùng lúc';
     if (str_contains($tenThamSo, 'NgayMuonToiDa')) return 'Thời gian mượn sách tối đa cho mỗi lần mượn';
+    if (str_contains($tenThamSo, 'TienPhatTreNgay')) return 'Số tiền phạt mỗi ngày trả trễ';
     if (str_contains($tenThamSo, 'SoNamXuatBan')) return 'Chỉ nhận sách xuất bản trong khoảng thời gian này';
     return 'Tham số hệ thống';
 }
@@ -624,6 +636,7 @@ function getFriendlyLabel($tenThamSo) {
         'ThoiHanThe' => 'Thời hạn thẻ độc giả (tháng)',
         'SoSachToiDa' => 'Số lượng sách tối đa mượn cùng lúc',
         'NgayMuonToiDa' => 'Số ngày mượn tối đa',
+        'TienPhatTreNgay' => 'Tiền phạt mỗi ngày trả trễ',
         'SoNamXuatBan' => 'Số năm xuất bản sách được chấp nhận',
     ][$tenThamSo] ?? $tenThamSo;
 }
