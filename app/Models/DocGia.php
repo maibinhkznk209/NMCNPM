@@ -11,6 +11,19 @@ use Illuminate\Support\Str;
 
 class DocGia extends Model
 {
+    public function borrowBook($bookId, $quantity) {
+        $book = Sach::find($bookId);
+        if ($book && $book->isAvailable($quantity)) {
+            // Logic to create a new borrowing record
+            // Update the book quantity
+            $book->quantity -= $quantity;
+            $book->save();
+            // Create a new PhieuMuon record
+        } else {
+            // Handle the case where the book is not available
+        }
+    }
+
     use HasFactory;
 
     protected $table = 'DOCGIA';

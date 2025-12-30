@@ -18,6 +18,10 @@ class PhieuMuon extends Model
     public $incrementing = false;
     public $timestamps = false;
     protected $fillable = [
+    'MaDocGia',
+    'MaCuonSach',
+    'quantity', // Add this line to track quantity borrowed
+
         'MaPhieuMuon',
         'MaDocGia',
         'NgayMuon',

@@ -7,6 +7,7 @@ use App\Models\LoaiDocGia;
 use App\Models\QuyDinh;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DocGiaController extends Controller
 {
@@ -27,16 +28,32 @@ class DocGiaController extends Controller
 
         $docGias = $query->get();
         $loaiDocGias = LoaiDocGia::orderBy('TenLoaiDocGia')->get();
+        $borrowDurationDays = $this->getBorrowDurationDays();
 
         // Nếu là AJAX request, trả về JSON
         if ($request->expectsJson()) {
             return response()->json([
                 'docGias' => $docGias,
-                'loaiDocGias' => $loaiDocGias
+                'loaiDocGias' => $loaiDocGias,
+                'borrowDurationDays' => $borrowDurationDays,
             ]);
         }
 
-        return view('readers', compact('docGias', 'loaiDocGias'));
+        return view('readers', compact('docGias', 'loaiDocGias', 'borrowDurationDays'));
+    }
+
+    private function getBorrowDurationDays(): int
+    {
+        try {
+            $row = DB::table('THAMSO')->where('TenThamSo', 'NgayMuonToiDa')->first();
+            if ($row && isset($row->GiaTri) && is_numeric($row->GiaTri)) {
+                return (int) $row->GiaTri;
+            }
+        } catch (\Throwable $e) {
+            // fallback below
+        }
+
+        return 14;
     }
 
     public function store(Request $request)

@@ -2,6 +2,7 @@
 
 @section('title', 'Quản lý độc giả - Hệ thống thư viện')
 
+
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/books.css') }}">
 <style>
@@ -146,6 +147,17 @@
       flex-shrink: 0;
     }
 
+        .borrow-btn {
+            background: linear-gradient(135deg, #3182ce, #2b6cb0);
+            color: white;
+            box-shadow: 0 3px 10px rgba(49, 130, 206, 0.2);
+        }
+
+        .borrow-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(49, 130, 206, 0.35);
+        }
+
     .edit-btn {
       background: linear-gradient(135deg, #ed8936, #dd6b20);
       color: white;
@@ -210,6 +222,24 @@
         color: #6c757d;
         font-size: 11px;
     }
+
+        .reader-info-summary {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 12px;
+            line-height: 1.5;
+            font-size: 13px;
+        }
+
+        .borrow-note {
+            background: #fffbea;
+            border: 1px solid #f6e05e;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #744210;
+            font-size: 13px;
+        }
     
     /* Ensure action buttons never wrap and always stay in one line */
     td.actions {
@@ -342,6 +372,13 @@
                             </td>
                             <td class="actions">
                                 <div class="action-buttons">
+                                    <button class="btn borrow-btn" 
+                                            data-reader-id="{{ $docGia->MaDocGia }}"
+                                            data-reader-name="{{ $docGia->TenDocGia }}"
+                                            data-reader-email="{{ $docGia->Email }}"
+                                            data-reader-expired="{{ \Carbon\Carbon::parse($docGia->NgayHetHan)->toDateString() }}"
+                                            data-reader-debt="{{ $docGia->TongNo ?? 0 }}"
+                                            onclick="openBorrowModalFromButton(this)">📚 Mượn</button>
                                     <button class="btn edit-btn" onclick="openEditModal('{{ $docGia->MaDocGia }}')">✏️ Sửa</button>
                                     <form action="{{ route('readers.destroy', $docGia->MaDocGia) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa độc giả này?\n\nLưu ý: Không thể xóa nếu độc giả còn nợ.')">
                                         @csrf
@@ -583,6 +620,47 @@
             </form>
         </div>
     </div>
+
+    {{-- Modal mượn sách --}}
+    <div id="borrowModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📚 Lập phiếu mượn</h3>
+                <span class="close" onclick="closeBorrowModal()">&times;</span>
+            </div>
+            <form id="borrowForReaderForm" onsubmit="return submitBorrowForReader(event)">
+                <input type="hidden" id="borrowReaderId">
+
+                <div class="form-group">
+                    <label>Độc giả</label>
+                    <div id="borrowReaderInfo" class="reader-info-summary">Chưa chọn độc giả</div>
+                    <div id="borrowReaderWarning" class="borrow-note" style="display: none; margin-top: 8px;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="borrowBookSelect">Chọn sách *</label>
+                    <select id="borrowBookSelect" required style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e9ecef; font-size: 14px;"></select>
+                </div>
+
+                <div class="form-group" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                    <div>
+                        <label for="borrowDateReader">Ngày mượn *</label>
+                        <input type="date" id="borrowDateReader" required style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label for="borrowDueDateReader">Ngày hẹn trả *</label>
+                        <input type="date" id="borrowDueDateReader" required style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 14px;">
+                        <small style="color: #6c757d; display: block; margin-top: 4px;">Tự động cộng {{ $borrowDurationDays ?? 14 }} ngày từ ngày mượn</small>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeBorrowModal()">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu phiếu mượn</button>
+                </div>
+            </form>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -591,6 +669,11 @@
     const MIN_AGE = {{ App\Models\QuyDinh::getMinAge() }};
     const MAX_AGE = {{ App\Models\QuyDinh::getMaxAge() }};
     const CARD_VALIDITY_MONTHS = {{ App\Models\QuyDinh::getCardValidityMonths() }};
+    const BORROW_DURATION_DAYS = Number({{ $borrowDurationDays ?? 14 }});
+
+    let borrowBooks = [];
+    let borrowBooksLoaded = false;
+    let borrowSelectedReader = null;
 
     // Date formatting and validation functions
     function formatDateInput(input) {
@@ -696,6 +779,22 @@
         return `${expDay}/${expMonth}/${expYear}`;
     }
 
+    function toInputDate(date) {
+        const d = date instanceof Date ? date : new Date(date);
+        if (Number.isNaN(d.getTime())) return '';
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function computeDueDateFromBorrow(borrowDateStr) {
+        const date = new Date(borrowDateStr);
+        if (Number.isNaN(date.getTime())) return '';
+        date.setDate(date.getDate() + BORROW_DURATION_DAYS);
+        return toInputDate(date);
+    }
+
     // Script đơn giản để ẩn thông báo sau vài giây
     document.addEventListener('DOMContentLoaded', function() {
         const toast = document.getElementById('toast-message');
@@ -741,6 +840,18 @@
                 });
             }
         });
+
+        const borrowDateInput = document.getElementById('borrowDateReader');
+        const borrowDueDateInput = document.getElementById('borrowDueDateReader');
+        if (borrowDateInput && borrowDueDateInput) {
+            const todayIso = toInputDate(new Date());
+            borrowDateInput.value = todayIso;
+            borrowDueDateInput.value = computeDueDateFromBorrow(todayIso);
+
+            borrowDateInput.addEventListener('change', function() {
+                borrowDueDateInput.value = computeDueDateFromBorrow(this.value);
+            });
+        }
 
         // Enhanced address field functionality
         const addressFields = ['DiaChi', 'editDiaChi'];
@@ -901,6 +1012,222 @@
         document.getElementById('editReaderForm').reset();
     };
 
+    function formatBorrowBookCode(book) {
+        const dauSach = book?.MaDauSach;
+        const soThuTu = book?.SoThuTuCuon;
+        const maSach = book?.MaSach || book?.id;
+
+        if (dauSach) {
+            const prefix = `DS${String(dauSach).padStart(4, '0')}`;
+            if (soThuTu) {
+                return `${prefix}-${String(soThuTu).padStart(3, '0')}`;
+            }
+            return `${prefix}-${String(maSach).padStart(3, '0')}`;
+        }
+
+        return `S${String(maSach || '???').padStart(4, '0')}`;
+    }
+
+    async function loadBorrowBooks(selectedId = null) {
+        const select = document.getElementById('borrowBookSelect');
+        if (!select) return;
+
+        if (borrowBooksLoaded && borrowBooks.length) {
+            renderBorrowBooksOptions(selectedId);
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/borrow-records/books/list');
+            const data = await response.json();
+
+            if (data.success) {
+                borrowBooks = data.data || [];
+                borrowBooksLoaded = true;
+                renderBorrowBooksOptions(selectedId);
+            } else {
+                select.innerHTML = '<option value="" disabled>Không thể tải danh sách sách</option>';
+                showToast(data.message || 'Không thể tải danh sách sách khả dụng', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading borrow books:', error);
+            select.innerHTML = '<option value="" disabled>Không thể tải danh sách sách</option>';
+            showToast('Lỗi khi tải danh sách sách khả dụng', 'error');
+        }
+    }
+
+    function renderBorrowBooksOptions(selectedId = null) {
+        const select = document.getElementById('borrowBookSelect');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">-- Chọn sách khả dụng --</option>';
+
+        if (!borrowBooks.length) {
+            select.innerHTML += '<option value="" disabled>Không có sách khả dụng</option>';
+            return;
+        }
+
+        borrowBooks.forEach(book => {
+            const option = document.createElement('option');
+            option.value = book.MaSach || book.id;
+            const title = book.TenSach || book.TenDauSach || book.title || 'Không rõ tên sách';
+            const author = book.TenTacGia ? ` (${book.TenTacGia})` : '';
+            option.textContent = `${formatBorrowBookCode(book)} - ${title}${author}`;
+            if (selectedId && String(selectedId) === String(option.value)) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+    }
+
+    window.openBorrowModal = function(readerData) {
+        borrowSelectedReader = readerData || null;
+
+        const readerIdInput = document.getElementById('borrowReaderId');
+        const readerInfo = document.getElementById('borrowReaderInfo');
+        const warning = document.getElementById('borrowReaderWarning');
+
+        if (!borrowSelectedReader) {
+            readerIdInput.value = '';
+            readerInfo.textContent = 'Chưa chọn độc giả';
+            warning.style.display = 'none';
+            return;
+        }
+
+        readerIdInput.value = borrowSelectedReader.id || '';
+
+        const expiredText = borrowSelectedReader.expired_at
+            ? new Date(borrowSelectedReader.expired_at).toLocaleDateString('vi-VN')
+            : 'Chưa có';
+
+        readerInfo.innerHTML = `
+            <strong>${borrowSelectedReader.name || 'N/A'}</strong><br>
+            Email: ${borrowSelectedReader.email || 'Chưa có'}<br>
+            Mã thẻ: ${borrowSelectedReader.id || 'N/A'}<br>
+            Hết hạn: ${expiredText}
+        `;
+
+        const warnings = [];
+        const today = new Date();
+        if (borrowSelectedReader.expired_at && new Date(borrowSelectedReader.expired_at) < today) {
+            warnings.push('Thẻ độc giả đã hết hạn, vui lòng gia hạn trước khi mượn.');
+        }
+
+        if (Number(borrowSelectedReader.debt || 0) > 0) {
+            warnings.push('Độc giả đang có nợ, cần thanh toán trước khi mượn.');
+        }
+
+        if (warnings.length) {
+            warning.style.display = 'block';
+            warning.innerHTML = warnings.join('<br>');
+        } else {
+            warning.style.display = 'none';
+            warning.innerHTML = '';
+        }
+
+        const todayIso = toInputDate(new Date());
+        const dueIso = computeDueDateFromBorrow(todayIso);
+        const borrowDateInput = document.getElementById('borrowDateReader');
+        const borrowDueDateInput = document.getElementById('borrowDueDateReader');
+        if (borrowDateInput && borrowDueDateInput) {
+            borrowDateInput.value = todayIso;
+            borrowDueDateInput.value = dueIso;
+        }
+
+        loadBorrowBooks();
+        document.getElementById('borrowModal').style.display = 'block';
+    };
+
+    window.closeBorrowModal = function() {
+        borrowSelectedReader = null;
+        const readerIdInput = document.getElementById('borrowReaderId');
+        const readerInfo = document.getElementById('borrowReaderInfo');
+        const warning = document.getElementById('borrowReaderWarning');
+        const select = document.getElementById('borrowBookSelect');
+        const borrowDateInput = document.getElementById('borrowDateReader');
+        const borrowDueDateInput = document.getElementById('borrowDueDateReader');
+
+        if (readerIdInput) readerIdInput.value = '';
+        if (readerInfo) readerInfo.textContent = 'Chưa chọn độc giả';
+        if (warning) {
+            warning.style.display = 'none';
+            warning.innerHTML = '';
+        }
+        if (select) select.selectedIndex = 0;
+
+        const todayIso = toInputDate(new Date());
+        if (borrowDateInput) borrowDateInput.value = todayIso;
+        if (borrowDueDateInput) borrowDueDateInput.value = computeDueDateFromBorrow(todayIso);
+
+        document.getElementById('borrowModal').style.display = 'none';
+    };
+
+    window.submitBorrowForReader = async function(event) {
+        event.preventDefault();
+
+        if (!borrowSelectedReader) {
+            showToast('Chưa chọn độc giả', 'error');
+            return false;
+        }
+
+        const warning = document.getElementById('borrowReaderWarning');
+        if (warning && warning.style.display === 'block' && warning.textContent.trim().length > 0) {
+            showToast('Đã có lỗi xảy ra vui lòng thử lại!', 'error');
+            return false;
+        }
+
+        const select = document.getElementById('borrowBookSelect');
+        const borrowDateInput = document.getElementById('borrowDateReader');
+        const borrowDueDateInput = document.getElementById('borrowDueDateReader');
+
+        const bookId = select ? select.value : '';
+        if (!bookId) {
+            showToast('Vui lòng chọn sách để mượn', 'error');
+            return false;
+        }
+
+        const borrowDate = borrowDateInput ? borrowDateInput.value : '';
+        if (!borrowDate) {
+            showToast('Vui lòng chọn ngày mượn', 'error');
+            return false;
+        }
+
+        const dueDate = borrowDueDateInput && borrowDueDateInput.value
+            ? borrowDueDateInput.value
+            : computeDueDateFromBorrow(borrowDate);
+
+        try {
+            const response = await fetch('/api/borrow-records', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    MaDocGia: borrowSelectedReader.id,
+                    MaSach: [bookId],
+                    borrow_date: borrowDate,
+                    due_date: dueDate
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showToast(result.message || 'Lập phiếu mượn thành công', 'success');
+                closeBorrowModal();
+            } else {
+                showToast(result.message || 'Không thể lập phiếu mượn', 'error');
+            }
+        } catch (error) {
+            console.error('Borrow error:', error);
+            showToast('Có lỗi xảy ra khi lưu phiếu mượn', 'error');
+        }
+
+        return false;
+    };
+
     // Toast notification function - Global scope
     window.showToast = function(message, type = 'success') {
         // Remove existing toast if any
@@ -927,12 +1254,16 @@
     window.onclick = function(event) {
         const addModal = document.getElementById('addModal');
         const editModal = document.getElementById('editModal');
+        const borrowModal = document.getElementById('borrowModal');
         
         if (event.target == addModal) {
             closeAddModal();
         }
         if (event.target == editModal) {
             closeEditModal();
+        }
+        if (event.target == borrowModal) {
+            closeBorrowModal();
         }
     };
 
@@ -941,12 +1272,16 @@
         if (event.key === 'Escape') {
             const addModal = document.getElementById('addModal');
             const editModal = document.getElementById('editModal');
+            const borrowModal = document.getElementById('borrowModal');
             
             if (addModal.style.display === 'block') {
                 closeAddModal();
             }
             if (editModal.style.display === 'block') {
                 closeEditModal();
+            }
+            if (borrowModal.style.display === 'block') {
+                closeBorrowModal();
             }
         }
     });
@@ -1126,5 +1461,15 @@
             }
         });
     }
+     window.openBorrowModalFromButton = function(button) {
+        const readerData = {
+            id: button.getAttribute('data-reader-id'),
+            name: button.getAttribute('data-reader-name'),
+            email: button.getAttribute('data-reader-email'),
+            expired_at: button.getAttribute('data-reader-expired'),
+            debt: parseFloat(button.getAttribute('data-reader-debt') || 0)
+        };
+        openBorrowModal(readerData);
+    };
 </script>
 @endpush

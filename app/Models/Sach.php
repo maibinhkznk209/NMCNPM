@@ -18,6 +18,8 @@ class Sach extends Model
     protected $fillable = [
         'MaDauSach',
         'MaNXB',
+        'quantity', // Add this line
+
         'NamXuatBan',
         'TriGia',
         'SoLuong',
