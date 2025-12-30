@@ -64,11 +64,13 @@ class SachController extends Controller
                 'cs.MaCuonSach',
                 'cs.MaSach',
                 'cs.TinhTrang',
+                'ds.MaDauSach',
                 'ds.TenDauSach',
                 'tl.TenTheLoai',
                 DB::raw('GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia'),
+                DB::raw('(SELECT COUNT(*) FROM CUONSACH cs2 JOIN SACH s2 ON s2.MaSach = cs2.MaSach WHERE s2.MaDauSach = ds.MaDauSach AND cs2.MaCuonSach <= cs.MaCuonSach) as SoThuTuCuon'),
             ])
-            ->groupBy('cs.MaCuonSach', 'cs.MaSach', 'cs.TinhTrang', 'ds.TenDauSach', 'tl.TenTheLoai')
+            ->groupBy('cs.MaCuonSach', 'cs.MaSach', 'cs.TinhTrang', 'ds.MaDauSach', 'ds.TenDauSach', 'tl.TenTheLoai')
             ->orderByDesc('cs.MaCuonSach');
 
         $search = trim((string)$request->get('search', ''));
@@ -249,3 +251,4 @@ class SachController extends Controller
         return $default;
     }
 }
+

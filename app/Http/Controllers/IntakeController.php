@@ -67,6 +67,7 @@ class IntakeController extends Controller
                     'p.NgayNhap',
                     'p.SoLuong',
                     's.MaSach',
+                    'ds.MaDauSach',
                     'ds.TenDauSach',
                     'nxb.TenNXB',
                     's.NamXuatBan',

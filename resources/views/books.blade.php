@@ -95,15 +95,15 @@
       @forelse($danhSachSach as $i => $cs)
         <tr>
           <td>{{ $i + 1 }}</td>
-          <td><strong>{{ $cs->MaCuonSach }}</strong></td>
-          <td>{{ $cs->MaSach }}</td>
+          <td><strong>{{ $cs->MaDauSach ? 'DS' . str_pad((string)$cs->MaDauSach, 4, '0', STR_PAD_LEFT) . '-' . str_pad((string)($cs->SoThuTuCuon ?? $cs->MaCuonSach), 3, '0', STR_PAD_LEFT) : ($cs->MaCuonSach ?? '-') }}</strong></td>
+          <td>{{ $cs->MaDauSach ? 'DS' . str_pad((string)$cs->MaDauSach, 4, '0', STR_PAD_LEFT) : ($cs->MaSach ?? '-') }}</td>
           <td>{{ $cs->TenDauSach ?? '-' }}</td>
           <td>{{ $cs->TenTheLoai ?? '-' }}</td>
           <td>{{ $cs->TenTacGia ?? '-' }}</td>
           <td><span class="badge">{{ $cs->TinhTrang ?? '-' }}</span></td>
           <td>
             <button type="button" class="btn btn-primary"
-              onclick="openStatusModal('{{ $cs->MaCuonSach }}', {{ json_encode($cs->TenDauSach ?? '') }}, {{ json_encode($cs->TinhTrang ?? '') }})">
+              onclick="openStatusModal('{{ $cs->MaCuonSach }}', {{ json_encode($cs->TenDauSach ?? '') }}, {{ json_encode($cs->TinhTrang ?? '') }}, {{ json_encode($cs->MaDauSach ?? null) }}, {{ json_encode($cs->SoThuTuCuon ?? null) }})">
               Cập nhật tình trạng
             </button>
           </td>
@@ -160,8 +160,26 @@
 
 @push('scripts')
 <script>
-  function openStatusModal(maCuon, tenSach, tinhTrang) {
-    document.getElementById('bm10_maCuon').value = maCuon || '';
+  function formatDauSachCode(id) {
+    const num = Number(id);
+    if (!Number.isFinite(num)) {
+      return id || '';
+    }
+    return `DS${String(num).padStart(4, '0')}`;
+  }
+
+  function formatCuonSachCode(dauSachId, cuonSachId) {
+    const prefix = formatDauSachCode(dauSachId);
+    const num = Number(cuonSachId);
+    if (!Number.isFinite(num) || !prefix) {
+      return cuonSachId || '';
+    }
+    return `${prefix}-${String(num).padStart(3, '0')}`;
+  }
+
+  function openStatusModal(maCuon, tenSach, tinhTrang, maDauSach, soThuTuCuon) {
+    const displayIndex = Number.isFinite(Number(soThuTuCuon)) ? soThuTuCuon : maCuon;
+    document.getElementById('bm10_maCuon').value = formatCuonSachCode(maDauSach, displayIndex);
     document.getElementById('bm10_tenSach').value = tenSach || '';
     document.getElementById('bm10_tinhTrang').value = tinhTrang || '';
 
@@ -191,3 +209,4 @@
   });
 </script>
 @endpush
+

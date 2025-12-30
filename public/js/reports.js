@@ -3,7 +3,9 @@
 // Set default values when page loads
 document.addEventListener('DOMContentLoaded', function() {
     // Set default date to today
-    document.getElementById('overdueDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('overdueDate').value = new Date(
+        Date.now() - new Date().getTimezoneOffset() * 60000
+    ).toISOString().split('T')[0];
     
     // Set default month and year
     const now = new Date();
@@ -140,12 +142,17 @@ document.getElementById('overdueReportForm').addEventListener('submit', async fu
 });
 
 function displayOverdueResults(data) {
-    const totalOverdue = Number(data.total_overdue || 0);
+    const totalOverdueUnreturned = Number(
+        data.total_overdue_unreturned ?? data.total_overdue ?? 0
+    );
+    const totalOverdueBooks = Number(
+        data.total_overdue ?? (Array.isArray(data.overdue_books) ? data.overdue_books.length : 0)
+    );
     const totalFine = Number(data.total_fine || 0);
-    document.getElementById('totalOverdue').textContent = totalOverdue.toLocaleString();
+    document.getElementById('totalOverdue').textContent = totalOverdueUnreturned.toLocaleString();
     document.getElementById('totalFine').textContent = totalFine.toLocaleString() + 'đ';
     document.getElementById('reportDate').textContent = new Date(data.date).toLocaleDateString('vi-VN');
-    document.getElementById('totalOverdueFooter').textContent = totalOverdue.toLocaleString();
+    document.getElementById('totalOverdueFooter').textContent = totalOverdueBooks.toLocaleString();
     document.getElementById('totalFineFooter').textContent = totalFine.toLocaleString() + 'đ';
 
     const tbody = document.getElementById('overdueTableBody');

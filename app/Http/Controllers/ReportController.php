@@ -77,7 +77,7 @@ class ReportController extends Controller
             ->select([
                 'tl.MaTheLoai as genre_id',
                 'tl.TenTheLoai as genre_name',
-                DB::raw('COUNT(*) as borrow_count'),
+                DB::raw('COUNT(DISTINCT pm.MaPhieuMuon) as borrow_count'),
                 DB::raw('GROUP_CONCAT(ds.TenDauSach) as books'),
             ])
             ->orderByDesc('borrow_count')
@@ -189,12 +189,18 @@ class ReportController extends Controller
     })->values();
 
     $totalFine = (int) $overdueBooks->sum('fine_amount');
+    $totalOverdueUnreturned = $rows
+        ->filter(fn ($r) => empty($r->return_date))
+        ->pluck('borrow_id')
+        ->unique()
+        ->count();
 
     return response()->json([
         'success' => true,
         'data' => [
             'date' => $reportDate->toDateString(),
             'total_overdue' => $overdueBooks->count(),
+            'total_overdue_unreturned' => $totalOverdueUnreturned,
             'total_fine' => $totalFine,
             'overdue_books' => $overdueBooks->all(),
         ],

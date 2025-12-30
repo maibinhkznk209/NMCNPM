@@ -538,7 +538,7 @@
           <table class="books-table">
             <thead>
               <tr>
-                <th>Mã sách</th>
+                <th>Mã cuốn sách</th>
                 <th>Tên sách</th>
                 <th>Tác giả</th>
                 <th>Thể loại</th>
@@ -593,10 +593,25 @@
                       $statusClass = 'status-lost';
                       $statusText  = 'Mất (' . $lostCount . ')';
                   }
+
+                  $maDauSach = $book->MaDauSach ?? optional($book->dauSach)->MaDauSach;
+                  $cuonSachs = $book->cuonSachs ? $book->cuonSachs->sortBy('MaCuonSach')->values() : collect();
+                  $firstCuon = $cuonSachs->first();
+                  $maCuonDisplay = '-';
+                  if ($maDauSach) {
+                      $prefix = 'DS' . str_pad((string)$maDauSach, 4, '0', STR_PAD_LEFT);
+                      if ($firstCuon) {
+                          $maCuonDisplay = $prefix . '-' . str_pad('1', 3, '0', STR_PAD_LEFT);
+                      } else {
+                          $maCuonDisplay = $prefix;
+                      }
+                  } elseif ($firstCuon) {
+                      $maCuonDisplay = (string)$firstCuon->MaCuonSach;
+                  }
 @endphp
 
                 <tr>
-                  <td><strong>{{ $book->MaSach }}</strong></td>
+                  <td><strong>{{ $maCuonDisplay }}</strong></td>
                   <td>{{ $tenDauSach }}</td>
                   <td>{{ $authorNames !== '' ? $authorNames : 'Chưa có thông tin' }}</td>
                   <td>

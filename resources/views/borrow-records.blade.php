@@ -1570,6 +1570,34 @@
   let selectedBooks = [];
   let isEditMode = false;
 
+  function formatDauSachCode(id) {
+    const num = Number(id);
+    if (!Number.isFinite(num)) {
+      return id || 'N/A';
+    }
+    return `DS${String(num).padStart(4, '0')}`;
+  }
+
+  function formatCuonSachCode(dauSachId, cuonSachId) {
+    const prefix = formatDauSachCode(dauSachId);
+    const num = Number(cuonSachId);
+    if (!Number.isFinite(num) || !prefix) {
+      return cuonSachId || 'N/A';
+    }
+    return `${prefix}-${String(num).padStart(3, '0')}`;
+  }
+
+  function getBookDisplayCode(book) {
+    if (!book) return 'N/A';
+    const dauSachId = book.MaDauSach || book.ma_dau_sach;
+    const seq = book.SoThuTuCuon || book.so_thu_tu_cuon;
+    if (dauSachId) {
+      const safeSeq = Number.isFinite(Number(seq)) ? seq : 1;
+      return formatCuonSachCode(dauSachId, safeSeq);
+    }
+    return formatDauSachCode(book.MaSach || book.id || book.code);
+  }
+
   // Initialize page
   document.addEventListener('DOMContentLoaded', function() {
     loadInitialData();
@@ -1727,9 +1755,10 @@
       container.innerHTML = '<span class="placeholder" id="readerPlaceholder">Chọn độc giả...</span>';
       hiddenInput.value = '';
     } else {
+      const readerName = selectedReader.name || selectedReader.TenDocGia || 'N/A';
       container.innerHTML = `
         <div class="selected-item">
-          <span>${selectedReader.name}</span>
+          <span>${readerName}</span>
           <span class="remove" onclick="removeReader()">&times;</span>
         </div>
       `;
@@ -1800,11 +1829,12 @@
         const isSelected = selectedBooks.some(sb => sb.id === book.id);
         const bookTitle = book.title || book.TenSach || book.TenDauSach || 'Không rõ tên sách';
         const bookAuthor = book.author || book.TenTacGia || (book.tac_gia ? book.tac_gia.TenTacGia : '') || 'Chưa có tác giả';
+        const bookCode = getBookDisplayCode(book);
         
         return `
           <div class="dropdown-item ${isSelected ? 'selected' : ''}" onclick="selectBook(${book.id})">
             <div class="item-title">${bookTitle} ${isSelected ? '<span style="color: #4299e1; font-weight: bold;">(Đã chọn)</span>' : ''}</div>
-            <div class="item-subtitle">${bookAuthor}</div>
+            <div class="item-subtitle">${bookCode}${bookAuthor ? " - " + bookAuthor : ""}</div>
         </div>
         `;
       }).join('');
@@ -1834,16 +1864,7 @@
     const book = allBooks.find(b => Number(b.id) === id || Number(b.MaSach) === id);
     if (!book) return;
 
-    if (isEditMode) {
-      selectedBooks = [book];
-    } else {
-      const existingIndex = selectedBooks.findIndex(sb => Number(sb.id) === id || Number(sb.MaSach) === id);
-      if (existingIndex !== -1) {
-        selectedBooks.splice(existingIndex, 1);
-      } else {
-        selectedBooks.push(book);
-      }
-    }
+    selectedBooks = [book];
 
     updateBooksDisplay();
     document.getElementById('booksSearchInput').value = '';
@@ -1876,7 +1897,7 @@
       
       const booksHTML = selectedBooks.map(book => `
         <div class="selected-item">
-          <span>${book.title || book.TenSach || book.TenDauSach || 'Không rõ tên sách'}</span>
+          <span>${getBookDisplayCode(book)} - ${book.title || book.TenSach || book.TenDauSach || 'Không rõ tên sách'}</span>
           <span class="remove" onclick="removeBook(${book.id})">&times;</span>
         </div>
       `).join('');
@@ -2021,16 +2042,28 @@
     return docGia.TenDocGia || docGia.HoTen || docGia.HoTenDocGia || docGia.name || 'N/A';
   }
 
+  function toLocalDateInputValue(date) {
+    const tzOffsetMs = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - tzOffsetMs).toISOString().split('T')[0];
+  }
+
+  function parseLocalDateInput(value) {
+    if (!value) return null;
+    const parts = value.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+
   function calculateDueDate(baseDate, days) {
     if (!baseDate) return '';
-    const date = new Date(baseDate);
-    if (Number.isNaN(date.getTime())) return '';
+    const date = parseLocalDateInput(baseDate);
+    if (!date || Number.isNaN(date.getTime())) return '';
     date.setDate(date.getDate() + days);
-    return date.toISOString().split('T')[0];
+    return toLocalDateInputValue(date);
   }
 
   function setDefaultDates() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalDateInputValue(new Date());
     
     document.getElementById('borrowDate').value = today;
     const dueInput = document.getElementById('borrowDueDate');
@@ -2309,7 +2342,7 @@
       document.getElementById('borrowDate').value = borrowDate;
     } else {
       // Set today's date as default if no date found
-      const today = new Date().toISOString().split('T')[0];
+      const today = toLocalDateInputValue(new Date());
       document.getElementById('borrowDate').value = today;
     }
 
@@ -2468,7 +2501,7 @@
           `;
         }
         
-        const bookCode = book.MaSach || 'N/A';
+        const bookCode = getBookDisplayCode(book);
         const borrowDate = formatDate(borrowDetail.NgayMuon);
         const returnDate = formatDate(chiTiet.NgayTra);
         
@@ -2584,7 +2617,7 @@
           `;
         }
         
-        const bookCode = book.MaSach || 'N/A';
+        const bookCode = getBookDisplayCode(book);
         const bookTitle = book.TenSach || 'Không rõ tên sách';
         
         // Handle multiple genres
@@ -2655,14 +2688,14 @@
       // New API structure
       const firstBook = record.books[0];
       const bookTitle = firstBook.title || 'Không rõ tên sách';
-      const bookCode = firstBook.code || 'N/A';
+      const bookCode = getBookDisplayCode(firstBook);
       bookInfo = `${bookCode} - ${bookTitle}`;
     } else if (record.chi_tiet_phieu_muon && record.chi_tiet_phieu_muon.length > 0) {
       // Fallback to old structure
       const firstChiTiet = record.chi_tiet_phieu_muon[0];
       if (firstChiTiet.sach) {
         const bookTitle = firstChiTiet.sach.TenSach || 'Không rõ tên sách';
-        const bookCode = firstChiTiet.sach.MaSach || firstChiTiet.sach.id || 'N/A';
+        const bookCode = getBookDisplayCode(firstChiTiet.sach);
         bookInfo = `${bookCode} - ${bookTitle}`;
       }
     }
@@ -2954,7 +2987,7 @@ function calculateExtendDays() {
         `;
       }
       
-      const bookCode = book.MaSach || 'N/A';
+      const bookCode = getBookDisplayCode(book);
       const bookTitle = book.TenSach || 'Không rõ tên sách';
       const bookValue = book.TriGia || 0;
       
@@ -3170,4 +3203,6 @@ function calculateExtendDays() {
   }
 </script>
 @endpush
+
+
 

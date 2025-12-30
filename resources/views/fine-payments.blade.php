@@ -634,7 +634,7 @@
           <td><strong style="color: #e53e3e;">${formatMoney(p.SoTienNop)}</strong></td>
           <td>${createdDate}</td>
           <td class="actions">
-            <button class="btn delete-btn" onclick="deletePayment(${p.id})">🗑️ Xóa</button>
+            <button class="btn delete-btn" onclick="deletePayment('${p.id}')">🗑️ Xóa</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -735,7 +735,7 @@
           docGiaName: response.data.doc_gia?.TenDocGia || '',
           docGiaCode: response.data.doc_gia?.MaDocGia || '',
           SoTienNop: parseFloat(response.data.SoTienNop),
-          created_at: response.data.NgayThu ? response.data.NgayThu : new Date().toISOString().split('T')[0]
+          created_at: response.data.NgayThu ? response.data.NgayThu : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
         });
 
         const docGiaIndex = docGias.findIndex(d => d.id == response.data.MaDocGia);
@@ -762,7 +762,7 @@ if (docGiaIndex !== -1) docGias[docGiaIndex].debt -= SoTienNop;
     
     if (!confirm(`Bạn có chắc chắn xóa phiếu thu "${payment.MaPhieuPhat}"?\nSố tiền ${formatMoney(payment.SoTienNop)} sẽ được hoàn lại cho độc giả.`)) return;
     try {
-      const response = await goApi(`/api/fine-payments/${id}`, 'DELETE');
+      const response = await goApi(`/api/fine-payments/${encodeURIComponent(id)}`, 'DELETE');
 
       if (response.success) {
         payments = payments.filter(p => p.id !== id);

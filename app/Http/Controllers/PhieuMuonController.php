@@ -344,6 +344,9 @@ class PhieuMuonController extends Controller
 
         // Books per borrow record (to satisfy UI expectations: record.books[])
         $booksByPM = [];
+        $hasCuonSach = Schema::hasTable('CUONSACH')
+            && Schema::hasColumn('CUONSACH', 'MaSach')
+            && Schema::hasColumn('CUONSACH', 'MaCuonSach');
         if (!empty($ids)) {
             $bookRows = DB::table('CT_PHIEUMUON as ct')
                 ->join('SACH as s', 's.MaSach', '=', 'ct.MaSach')
@@ -354,10 +357,14 @@ class PhieuMuonController extends Controller
                 ->select(
                     'ct.MaPhieuMuon',
                     'ct.MaSach',
+                    'ds.MaDauSach',
                     'ds.TenDauSach',
-                    DB::raw('GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia')
+                    DB::raw('GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia'),
+                    $hasCuonSach
+                        ? DB::raw('(SELECT COUNT(*) FROM CUONSACH cs2 JOIN SACH s2 ON s2.MaSach = cs2.MaSach WHERE s2.MaDauSach = ds.MaDauSach AND cs2.MaCuonSach <= (SELECT MIN(cs3.MaCuonSach) FROM CUONSACH cs3 WHERE cs3.MaSach = ct.MaSach)) as SoThuTuCuon')
+                        : DB::raw('NULL as SoThuTuCuon')
                 )
-                ->groupBy('ct.MaPhieuMuon', 'ct.MaSach', 'ds.TenDauSach')
+                ->groupBy('ct.MaPhieuMuon', 'ct.MaSach', 'ds.MaDauSach', 'ds.TenDauSach')
                 ->orderBy('ct.MaPhieuMuon')
                 ->orderBy('ct.MaSach')
                 ->get();
@@ -370,6 +377,8 @@ class PhieuMuonController extends Controller
                     'id' => (int)$r->MaSach,
                     'code' => (string)$r->MaSach,
                     'MaSach' => (int)$r->MaSach,
+                    'MaDauSach' => isset($r->MaDauSach) ? (int)$r->MaDauSach : null,
+                    'SoThuTuCuon' => isset($r->SoThuTuCuon) ? (int)$r->SoThuTuCuon : null,
                     'TenSach' => $r->TenDauSach,
                     'TenDauSach' => $r->TenDauSach,
                     'title' => $r->TenDauSach,
@@ -460,6 +469,10 @@ class PhieuMuonController extends Controller
             return response()->json(['success' => false, 'message' => 'Không tìm thấy phiếu mượn'], 404);
         }
 
+        $hasCuonSach = Schema::hasTable('CUONSACH')
+            && Schema::hasColumn('CUONSACH', 'MaSach')
+            && Schema::hasColumn('CUONSACH', 'MaCuonSach');
+
         $details = DB::table('CT_PHIEUMUON as ct')
             ->join('SACH as s', 's.MaSach', '=', 'ct.MaSach')
             ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
@@ -471,10 +484,14 @@ class PhieuMuonController extends Controller
                 'ct.NgayTra',
                 'ct.TienPhat',
                 's.TriGia',
+                'ds.MaDauSach',
                 'ds.TenDauSach',
-                DB::raw('GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia')
+                DB::raw('GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia'),
+                $hasCuonSach
+                    ? DB::raw('(SELECT COUNT(*) FROM CUONSACH cs2 JOIN SACH s2 ON s2.MaSach = cs2.MaSach WHERE s2.MaDauSach = ds.MaDauSach AND cs2.MaCuonSach <= (SELECT MIN(cs3.MaCuonSach) FROM CUONSACH cs3 WHERE cs3.MaSach = ct.MaSach)) as SoThuTuCuon')
+                    : DB::raw('NULL as SoThuTuCuon')
             )
-            ->groupBy('ct.MaSach', 'ct.NgayTra', 'ct.TienPhat', 's.TriGia', 'ds.TenDauSach')
+            ->groupBy('ct.MaSach', 'ct.NgayTra', 'ct.TienPhat', 's.TriGia', 'ds.MaDauSach', 'ds.TenDauSach')
             ->orderBy('ct.MaSach')
             ->get();
 
@@ -486,6 +503,8 @@ class PhieuMuonController extends Controller
             $sach = [
                 'id' => (int)$r->MaSach,
                 'MaSach' => (int)$r->MaSach,
+                'MaDauSach' => isset($r->MaDauSach) ? (int)$r->MaDauSach : null,
+                'SoThuTuCuon' => isset($r->SoThuTuCuon) ? (int)$r->SoThuTuCuon : null,
                 'TenSach' => $r->TenDauSach,
                 'TenDauSach' => $r->TenDauSach,
                 'TriGia' => $triGia,
@@ -587,6 +606,12 @@ class PhieuMuonController extends Controller
                 : $borrowDate->copy()->addDays($this->getBorrowDurationDays());
 
             $maPhieuMuon = $this->generateMaPhieuMuon();
+            DB::table('PHIEUMUON')->insert([
+                'MaPhieuMuon' => $maPhieuMuon,
+                'MaDocGia' => $maDocGia,
+                'NgayMuon' => $borrowDate->toDateString(),
+                'NgayHenTra' => $dueDate->toDateString(),
+            ]);
 
             // Mỗi phiếu mượn chỉ 1 cuốn sách.
             // Nếu người dùng chọn nhiều sách, hệ thống sẽ tạo nhiều phiếu mượn tương ứng.
@@ -978,6 +1003,9 @@ class PhieuMuonController extends Controller
     {
         // NOTE: In DB design, author is linked to DAUSACH via CT_TACGIA.
         // UI expects to display book title + author in the selector.
+        $hasCuonSach = Schema::hasTable('CUONSACH')
+            && Schema::hasColumn('CUONSACH', 'MaSach')
+            && Schema::hasColumn('CUONSACH', 'MaCuonSach');
         $q = DB::table('SACH as s')
             ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
             ->leftJoin('NHAXUATBAN as nxb', 'nxb.MaNXB', '=', 's.MaNXB')
@@ -985,15 +1013,20 @@ class PhieuMuonController extends Controller
             ->leftJoin('TACGIA as tg', 'tg.MaTacGia', '=', 'ctg.MaTacGia')
             ->select(
                 's.MaSach',
+                'ds.MaDauSach',
                 'ds.TenDauSach',
                 's.NamXuatBan',
                 's.TriGia',
                 's.SoLuong',
                 'nxb.TenNXB',
-                DB::raw("GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia")
+                DB::raw("GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia"),
+                $hasCuonSach
+                    ? DB::raw('(SELECT COUNT(*) FROM CUONSACH cs2 JOIN SACH s2 ON s2.MaSach = cs2.MaSach WHERE s2.MaDauSach = ds.MaDauSach AND cs2.MaCuonSach <= (SELECT MIN(cs3.MaCuonSach) FROM CUONSACH cs3 WHERE cs3.MaSach = s.MaSach)) as SoThuTuCuon')
+                    : DB::raw('NULL as SoThuTuCuon')
             )
             ->groupBy(
                 's.MaSach',
+                'ds.MaDauSach',
                 'ds.TenDauSach',
                 's.NamXuatBan',
                 's.TriGia',
@@ -1027,6 +1060,8 @@ class PhieuMuonController extends Controller
             return [
                 'id' => (int)$r->MaSach,
                 'MaSach' => (int)$r->MaSach,
+                'MaDauSach' => isset($r->MaDauSach) ? (int)$r->MaDauSach : null,
+                'SoThuTuCuon' => isset($r->SoThuTuCuon) ? (int)$r->SoThuTuCuon : null,
                 // Keep both for backward compatibility in UI
                 'TenDauSach' => $r->TenDauSach,
                 'TenSach' => $r->TenDauSach,
@@ -1079,6 +1114,9 @@ class PhieuMuonController extends Controller
         // Lấy danh sách sách có thể chọn:
         // - Sách đang "Có sẵn" (TinhTrang = 1) OR
         // - Sách đã nằm trong phiếu mượn này (để sửa phiếu mượn/phiếu trả vẫn thấy)
+        $hasCuonSach = Schema::hasTable('CUONSACH')
+            && Schema::hasColumn('CUONSACH', 'MaSach')
+            && Schema::hasColumn('CUONSACH', 'MaCuonSach');
         $books = DB::table('SACH as s')
             ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
             ->leftJoin('CT_TACGIA as ctg', 'ctg.MaDauSach', '=', 'ds.MaDauSach')
@@ -1106,13 +1144,17 @@ class PhieuMuonController extends Controller
             })
             ->select(
                 's.MaSach',
+                'ds.MaDauSach',
                 'ds.TenDauSach',
                 's.NamXuatBan',
                 's.TriGia',
                 'nxb.TenNXB',
-                DB::raw('GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia')
+                DB::raw('GROUP_CONCAT(DISTINCT tg.TenTacGia) as TenTacGia'),
+                $hasCuonSach
+                    ? DB::raw('(SELECT COUNT(*) FROM CUONSACH cs2 JOIN SACH s2 ON s2.MaSach = cs2.MaSach WHERE s2.MaDauSach = ds.MaDauSach AND cs2.MaCuonSach <= (SELECT MIN(cs3.MaCuonSach) FROM CUONSACH cs3 WHERE cs3.MaSach = s.MaSach)) as SoThuTuCuon')
+                    : DB::raw('NULL as SoThuTuCuon')
             )
-            ->groupBy('s.MaSach', 'ds.TenDauSach', 's.NamXuatBan', 's.TriGia', 'nxb.TenNXB')
+            ->groupBy('s.MaSach', 'ds.MaDauSach', 'ds.TenDauSach', 's.NamXuatBan', 's.TriGia', 'nxb.TenNXB')
             ->orderBy('s.MaSach')
             ->get()
             ->map(function ($r) {
@@ -1123,6 +1165,8 @@ class PhieuMuonController extends Controller
                     'id' => (int)$r->MaSach,
                     'code' => (string)$r->MaSach,
                     'MaSach' => (int)$r->MaSach,
+                    'MaDauSach' => isset($r->MaDauSach) ? (int)$r->MaDauSach : null,
+                    'SoThuTuCuon' => isset($r->SoThuTuCuon) ? (int)$r->SoThuTuCuon : null,
                     'TenDauSach' => $r->TenDauSach,
                     'TenSach' => $r->TenDauSach,
                     'title' => $r->TenDauSach,
@@ -1191,3 +1235,10 @@ class PhieuMuonController extends Controller
 
 
 }
+
+
+
+
+
+
+

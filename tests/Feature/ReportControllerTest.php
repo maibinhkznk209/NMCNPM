@@ -165,6 +165,11 @@ class ReportControllerTest extends TestCase
             'NgayMuon' => '2025-12-24',
             'NgayHenTra' => '2025-12-26',
         ]);
+        $phieuMuon2 = PhieuMuon::factory()->create([
+            'MaDocGia' => $this->docGia->MaDocGia,
+            'NgayMuon' => '2025-12-24',
+            'NgayHenTra' => '2025-12-26',
+        ]);
 
         CT_PHIEUMUON::query()->create([
             'MaPhieuMuon' => $phieuMuon->MaPhieuMuon,
@@ -173,7 +178,7 @@ class ReportControllerTest extends TestCase
             'TienPhat' => 0,
         ]);
         CT_PHIEUMUON::query()->create([
-            'MaPhieuMuon' => $phieuMuon->MaPhieuMuon,
+            'MaPhieuMuon' => $phieuMuon2->MaPhieuMuon,
             'MaSach' => $sach2->MaSach,
             'NgayTra' => '2025-12-29',
             'TienPhat' => 0,
@@ -483,4 +488,3 @@ class ReportControllerTest extends TestCase
             ]);
     }
 }
-

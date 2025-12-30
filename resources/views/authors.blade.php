@@ -626,7 +626,7 @@
           authors.push({
             id: response.data.id,
             name: response.data.TenTacGia,
-                            dateAdded: new Date().toISOString().split('T')[0]
+                            dateAdded: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
           });
           showToast('Thêm tác giả thành công!');
         }

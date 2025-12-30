@@ -13,7 +13,7 @@
     <tbody>
         @forelse ($danhSachSach as $sach)
             <tr>
-                <td>{{ $sach->MaSach ?? $sach->MaSach }}</td>
+                <td>{{ isset($sach->MaDauSach) ? 'DS' . str_pad((string)$sach->MaDauSach, 4, '0', STR_PAD_LEFT) : ($sach->MaSach ? 'DS' . str_pad((string)$sach->MaSach, 4, '0', STR_PAD_LEFT) : '') }}</td>
                 <td><strong>{{ $sach->TenDauSach ?? $sach->TenSach ?? '' }}</strong></td>
                 <td>{{ $sach->TenTheLoai ?? '' }}</td>
                 <td>{{ $sach->TenNXB ?? '' }}</td>

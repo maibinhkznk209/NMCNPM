@@ -642,7 +642,7 @@
           publishers.push({
             id: response.data.MaNXB,
             name: response.data.TenNXB,
-                            dateAdded: new Date().toISOString().split('T')[0]
+                            dateAdded: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
           });
           showToast('Thêm nhà xuất bản thành công!');
         }

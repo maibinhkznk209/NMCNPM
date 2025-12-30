@@ -183,7 +183,7 @@
                                         <div class="statistics-card">
                                             <i class="fas fa-exclamation-circle icon-large"></i>
                                             <h3 id="totalOverdue">0</h3>
-                                            <p class="mb-0">Số sách trả trễ</p>
+                                            <p class="mb-0">Số phiếu mượn quá hạn chưa trả</p>
                                         </div>
                                     </div>
                                     <div class="col-md-4">

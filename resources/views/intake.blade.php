@@ -137,7 +137,7 @@
                   $bookCount = (int)($ds->SoSach ?? 0);
                 @endphp
                 <tr>
-                  <td>{{ $ds->MaDauSach }}</td>
+                  <td>{{ $ds->MaDauSach ? 'DS' . str_pad((string)$ds->MaDauSach, 4, '0', STR_PAD_LEFT) : '-' }}</td>
                   <td>
                     <input type="text"
                            name="TenDauSach"
@@ -196,7 +196,7 @@
               <tr>
                 <td><strong>{{ $p->MaPhieuNhanDauSach }}</strong></td>
                 <td>{{ \Carbon\Carbon::parse($p->NgayNhap)->format('d/m/Y') }}</td>
-                <td style="text-align:center;">{{ $p->MaDauSach }}</td>
+                <td style="text-align:center;">{{ $p->MaDauSach ? 'DS' . str_pad((string)$p->MaDauSach, 4, '0', STR_PAD_LEFT) : '-' }}</td>
                 <td>{{ $p->TenDauSach }}</td>
               </tr>
             @endforeach
@@ -220,7 +220,7 @@
             <select id="MaDauSach" name="MaDauSach" required>
               <option value="">-- Chọn đầu sách --</option>
               @foreach($dauSachs as $ds)
-                <option value="{{ $ds->MaDauSach }}">{{ $ds->TenDauSach }}</option>
+                <option value="{{ $ds->MaDauSach }}">{{ 'DS' . str_pad((string)$ds->MaDauSach, 4, '0', STR_PAD_LEFT) . ' - ' . $ds->TenDauSach }}</option>
               @endforeach
             </select>
           </div>
@@ -292,7 +292,7 @@
               <tr>
                 <td><strong>{{ $p->MaPhieuNhanSach }}</strong></td>
                 <td>{{ \Carbon\Carbon::parse($p->NgayNhap)->format('d/m/Y') }}</td>
-                <td style="text-align:center;">{{ $p->MaSach }}</td>
+                <td style="text-align:center;">{{ $p->MaDauSach ? 'DS' . str_pad((string)$p->MaDauSach, 4, '0', STR_PAD_LEFT) : ($p->MaSach ?? '-') }}</td>
                 <td>{{ $p->TenDauSach }}</td>
                 <td>{{ $p->TenNXB ?? '-' }}</td>
                 <td style="text-align:center;">{{ $p->NamXuatBan ?? '-' }}</td>

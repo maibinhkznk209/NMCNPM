@@ -618,7 +618,7 @@
           genres.push({
             id: response.data.id,
             name: response.data.TenTheLoai,
-                            dateAdded: new Date().toISOString().split('T')[0]
+                            dateAdded: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
           });
           showToast('Thêm thể loại thành công!');
         }
