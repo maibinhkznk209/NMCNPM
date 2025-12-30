@@ -82,7 +82,7 @@
       <tr>
         <th style="width:60px;">STT</th>
         <th style="width:140px;">Mã cuốn</th>
-        <th style="width:120px;">Mã sách</th>
+        <th style="width:120px;">Mã đầu sách</th>
         <th>Tên đầu sách</th>
         <th>Thể loại</th>
         <th>Tác giả</th>
@@ -127,7 +127,7 @@
       @csrf
       <div class="modal-body">
         <div class="form-group">
-          <label>Mã cuốn sách</label>
+          <label>Mã sách</label>
           <input type="text" id="bm10_maCuon" name="MaCuonSach" readonly>
         </div>
 
