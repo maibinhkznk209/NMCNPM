@@ -7,6 +7,9 @@
 <link rel="stylesheet" href="{{ asset('css/books.css') }}">
 <style>
     /* Additional styles for readers page */
+    .container {
+        max-width: 1320px;
+    }
     .search-select-container.error {
         border: 2px solid #e74c3c !important;
         border-radius: 4px;
@@ -649,7 +652,7 @@
                     </div>
                     <div>
                         <label for="borrowDueDateReader">Ngày hẹn trả *</label>
-                        <input type="date" id="borrowDueDateReader" required style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 14px;">
+                        <input type="date" id="borrowDueDateReader" required readonly style="width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 14px;">
                         <small style="color: #6c757d; display: block; margin-top: 4px;">Tự động cộng {{ $borrowDurationDays ?? 14 }} ngày từ ngày mượn</small>
                     </div>
                 </div>
@@ -1192,9 +1195,10 @@
             return false;
         }
 
-        const dueDate = borrowDueDateInput && borrowDueDateInput.value
-            ? borrowDueDateInput.value
-            : computeDueDateFromBorrow(borrowDate);
+        const dueDate = computeDueDateFromBorrow(borrowDate);
+        if (borrowDueDateInput) {
+            borrowDueDateInput.value = dueDate;
+        }
 
         try {
             const response = await fetch('/api/borrow-records', {

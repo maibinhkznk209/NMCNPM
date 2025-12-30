@@ -1403,7 +1403,7 @@
         </div>
         <div class="form-group">
           <label for="borrowDueDate">📅 Ngày hẹn trả *</label>
-          <input type="date" id="borrowDueDate" required>
+          <input type="date" id="borrowDueDate" required readonly>
         </div>
 
         <div class="modal-actions">
@@ -2080,9 +2080,7 @@
       dueInput.value = '';
       return;
     }
-    if (!isEditMode || !dueInput.value) {
-      dueInput.value = calculateDueDate(borrowDate, BORROW_DURATION_DAYS);
-    }
+    dueInput.value = calculateDueDate(borrowDate, BORROW_DURATION_DAYS);
   }
 
   // Setup event listeners
@@ -2346,14 +2344,10 @@
       document.getElementById('borrowDate').value = today;
     }
 
-    const dueDate = record.due_date || record.NgayHenTra || record.ngay_hen_tra;
     const dueInput = document.getElementById('borrowDueDate');
     if (dueInput) {
-      if (dueDate) {
-        dueInput.value = dueDate;
-      } else {
-        dueInput.value = calculateDueDate(document.getElementById('borrowDate').value, BORROW_DURATION_DAYS);
-      }
+      const borrowDateValue = document.getElementById('borrowDate').value;
+      dueInput.value = calculateDueDate(borrowDateValue, BORROW_DURATION_DAYS);
     }
     
     document.getElementById('borrowModal').style.display = 'block';
@@ -2849,7 +2843,11 @@ function calculateExtendDays() {
       return;
     }
     
-    const dueDate = document.getElementById('borrowDueDate').value;
+    const dueInput = document.getElementById('borrowDueDate');
+    const dueDate = calculateDueDate(borrowDate, BORROW_DURATION_DAYS);
+    if (dueInput) {
+      dueInput.value = dueDate;
+    }
     if (!dueDate) {
       showToast('Vui lAýng ch ¯?n ngAÿy h §1n tr §œ', 'error');
       return;
