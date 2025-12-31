@@ -14,12 +14,34 @@ class PhieuPhatController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-{
-    try {
-        $phieuThus = PhieuPhat::with('docGia')->orderBy('NgayThu', 'desc')->get();
+    {
+        try {
+            $phieuThus = PhieuPhat::with('docGia')->orderBy('NgayThu', 'desc')->get();
+            $docGias = DocGia::orderBy('TenDocGia', 'asc')->get();
 
-        // IMPORTANT: API path must always return JSON
-        if ($request->is('api
+            // IMPORTANT: API path must always return JSON
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $phieuThus,
+                    'doc_gias' => $docGias,
+                ]);
+            }
+
+            return view('fine-payments', compact('phieuThus', 'docGias'));
+        } catch (\Exception $e) {
+            Log::error('Error in PhieuPhatController@index: ' . $e->getMessage());
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Co loi xay ra khi tai danh sach phieu thu.',
+                ], 500);
+            }
+
+            return redirect()->route('home')->with('error', 'Co loi xay ra khi tai danh sach phieu thu.');
+        }
+    }
     public function store(Request $request)
     {
         try {
