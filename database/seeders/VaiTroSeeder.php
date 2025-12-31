@@ -15,7 +15,7 @@ class VaiTroSeeder extends Seeder
      */
     public function run(): void
     {
-        // Seed vai trò mặc định
+
         $roles = [
             ['VaiTro' => 'Admin'],
             ['VaiTro' => 'Thủ thư'],
@@ -25,7 +25,7 @@ class VaiTroSeeder extends Seeder
             VaiTro::firstOrCreate(['VaiTro' => $role['VaiTro']], $role);
         }
 
-        // Tạo tài khoản admin mặc định
+
         $adminRole = VaiTro::where('VaiTro', 'Admin')->first();
         if ($adminRole) {
             TaiKhoan::firstOrCreate(
@@ -39,7 +39,7 @@ class VaiTroSeeder extends Seeder
             );
         }
 
-        // Tạo tài khoản thủ thư mặc định
+
         $librarianRole = VaiTro::where('VaiTro', 'Thủ thư')->first();
         if ($librarianRole) {
             TaiKhoan::firstOrCreate(

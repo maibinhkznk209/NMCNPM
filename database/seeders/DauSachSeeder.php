@@ -11,7 +11,7 @@ class DauSachSeeder extends Seeder
 {
     public function run(): void
     {
-        // master data fallback (nếu project đã có seeders khác thì bạn có thể xoá phần này)
+
         if (DB::table('THELOAI')->count() === 0) {
             DB::table('THELOAI')->insert([
                 ['MaTheLoai' => 1, 'TenTheLoai' => 'Khoa học'],

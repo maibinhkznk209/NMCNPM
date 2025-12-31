@@ -19,35 +19,7 @@ class PhieuPhatController extends Controller
         $phieuThus = PhieuPhat::with('docGia')->orderBy('NgayThu', 'desc')->get();
 
         // IMPORTANT: API path must always return JSON
-        if ($request->is('api/*') || $request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'data' => $phieuThus,
-            ], 200);
-        }
-
-        // Web view
-        $docGias = DocGia::orderBy('TenDocGia')->get();
-        return view('fine-payments', compact('phieuThus', 'docGias'));
-
-    } catch (\Exception $e) {
-        Log::error('Error in PhieuPhatController@index: ' . $e->getMessage());
-
-        if ($request->is('api/*') || $request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Có lỗi xảy ra khi tải dữ liệu.'
-            ], 500);
-        }
-
-        return back()->with('error', 'Có lỗi xảy ra khi tải dữ liệu.');
-    }
-}
-
-
-    /**
-     * Store a newly created resource in storage.
-     */
+        if ($request->is('api
     public function store(Request $request)
     {
         try {
@@ -62,10 +34,10 @@ class PhieuPhatController extends Controller
                 'SoTienNop.min' => 'Số tiền nộp phải lớn hơn 0',
             ]);
 
-            // Lấy thông tin độc giả
+
             $docGia = DocGia::findOrFail($request->MaDocGia);
             
-            // Kiểm tra số tiền nộp không vượt quá tổng nợ
+
             if ($request->SoTienNop > $docGia->TongNo) {
                 return response()->json([
                     'success' => false,
@@ -75,7 +47,7 @@ class PhieuPhatController extends Controller
 
             DB::beginTransaction();
 
-            // Tạo phiếu thu tiền phạt
+
             $phieuThu = PhieuPhat::create([
                 'MaPhieuPhat' => PhieuPhat::generateMaPhieuPhat(),
                 'MaDocGia' => $request->MaDocGia,
@@ -83,7 +55,7 @@ class PhieuPhatController extends Controller
                 'NgayThu' => now()->toDateString(),
             ]);
 
-            // Cập nhật tổng nợ của độc giả
+
             $docGia->TongNo -= $request->SoTienNop;
             $docGia->save();
 
@@ -141,12 +113,12 @@ class PhieuPhatController extends Controller
         try {
             DB::beginTransaction();
 
-            // Hoàn lại số tiền cho độc giả
+
             $docGia = DocGia::findOrFail($PhieuPhat->MaDocGia);
             $docGia->TongNo += $PhieuPhat->SoTienNop;
             $docGia->save();
 
-            // Xóa phiếu thu
+
             $PhieuPhat->delete();
 
             DB::commit();

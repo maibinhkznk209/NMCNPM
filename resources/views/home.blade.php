@@ -368,7 +368,7 @@
       </form>
     </div>
 
-  <!-- Hộp thông tin tài khoản -->
+  
     <div id="account-info-box" style="display: none; position: fixed; top: 70px; right: 30px; padding: 20px; z-index: 1000; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #e9ecef;">
                       <p><strong>👤 Họ và tên:</strong> <span id="account-username-display">{{ $user->HoVaTen }}</span></p>
       <p><strong>🎭 Vai trò:</strong> <span id="account-role-display">{{ $userRole }}</span></p>
@@ -380,7 +380,7 @@
                 </p>
   </div>
 
-  <!-- TOÀN BỘ GIAO DIỆN CHÍNH -->
+  
   <div class="container">
     <aside class="sidebar">
       <h2>MENU</h2>
@@ -405,7 +405,7 @@
       </nav>
     </aside>
   @else
-    <!-- Giao diện cho khách không đăng nhập -->
+    
     <div class="container">
   @endif
 
@@ -416,7 +416,7 @@
           <h1>THƯ VIỆN HIỆN ĐẠI</h1>
           <p>Khám phá thế giới tri thức với hàng ngàn cuốn sách chất lượng cao. Tìm kiếm và tra cứu sách dễ dàng!</p>
 
-          <!-- TÌM KIẾM -->
+          
           <form method="GET" action="{{ route('home') }}" class="search-box">
             <div class="search-input-wrapper">
               <input type="text" name="search" id="search-input" placeholder="Tìm kiếm sách, tác giả, thể loại..." value="{{ request('search') }}">
@@ -428,7 +428,7 @@
         </div>
       </section>
 
-      <!-- Bộ lọc tìm kiếm - Thu gọn -->
+      
       <div class="book-search-container">
         <h2>🔍 Bộ lọc tìm kiếm</h2>
         
@@ -513,7 +513,7 @@
         </form>
       </div>
 
-      <!-- Thông tin kết quả tìm kiếm -->
+      
       @if(request('search') || request('genre') || request('author') || request('publisher') || request('status'))
         <div class="search-results-info">
           <strong>🔍 Kết quả tìm kiếm:</strong> 
@@ -533,7 +533,7 @@
         </div>
       @endif
 
-      <!-- Danh sách sách dạng bảng -->
+      
       <div class="books-table-container">
         @if($books->count() > 0)
           <table class="books-table">
@@ -562,7 +562,7 @@
                   $theLoaiName = optional(optional($book->dauSach)->theLoai)->TenTheLoai;
                   $nxbName = optional($book->nhaXuatBan)->TenNXB;
 
-                  // Tình trạng hiển thị dựa trên CUONSACH (sẽ lazy-load nếu controller chưa eager load)
+
                   $statusText = 'Chưa có thông tin';
                   $statusClass = '';
                   $statuses = $book->cuonSachs ? $book->cuonSachs->pluck('TinhTrang') : collect();
@@ -634,7 +634,7 @@
         @endif
           </div>
         
-      <!-- Phân trang -->
+      
       @if($books->hasPages())
         <div class="pagination-container">
           <div class="pagination-info">

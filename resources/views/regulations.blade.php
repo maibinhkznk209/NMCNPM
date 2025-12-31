@@ -339,7 +339,7 @@
             <p>Cấu hình các quy định và thông số hoạt động của hệ thống thư viện</p>
         </div>
 
-        {{-- Thẻ thông báo thành công/lỗi --}}
+        
         @if (session('success'))
             <div class="toast success" id="toast-message">{{ session('success') }}</div>
         @endif
@@ -393,7 +393,7 @@
         </div>
     </div>
 
-    {{-- Modal sửa quy định --}}
+    
     <div id="editModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">

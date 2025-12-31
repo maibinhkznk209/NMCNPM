@@ -59,8 +59,8 @@ class TaiKhoanController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            // Nếu test không gửi VaiTroId thì gán mặc định
-            // Ưu tiên lấy role đầu tiên trong bảng VAITRO, fallback = 1
+
+
             $defaultRoleId = DB::table('VAITRO')->value('id') ?? 1;
 
             $validator = Validator::make($request->all(), [
@@ -169,7 +169,7 @@ class TaiKhoanController extends Controller
             ]);
 
             if ($validator->fails()) {
-                // Lấy thông báo lỗi đầu tiên từ validation errors
+
                 $firstError = collect($validator->errors())->first();
                 $errorMessage = is_array($firstError) ? $firstError[0] : $firstError;
                 
@@ -195,7 +195,7 @@ class TaiKhoanController extends Controller
             $taiKhoan->update($updateData);
 
             // Set default VaiTroId if not provided
-            $taiKhoan->VaiTroId = $request->input('VaiTroId') ?? 2; // Mặc định là Thủ thư nếu không gửi
+            $taiKhoan->VaiTroId = $request->input('VaiTroId') ?? 2;
 
             // Load relationship for response
             $taiKhoan->load('vaiTro');

@@ -486,7 +486,7 @@
     </div>
   </div>
 
-  <!-- Modal thêm phiếu thu -->
+  
   <div class="modal" id="paymentModal">
     <div class="modal-content">
       <h2 id="modalTitle">Thêm phiếu thu mới</h2>
@@ -524,10 +524,10 @@
 
 @push('scripts')
 <script>
-  // Lấy CSRF token từ meta
+
   const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-  // Khởi tạo dữ liệu từ server
+
   let payments = [
     @foreach ($phieuThus as $phieuThu)
       {
@@ -558,7 +558,7 @@
 
   let filteredPayments = [...payments];
 
-  // Hàm AJAX chung dùng fetch
+
   async function goApi(url, method, data = null) {
     const opts = {
       method,
@@ -579,7 +579,7 @@
     return responseData;
   }
 
-  // Hiển thị thông báo toast
+
   function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
@@ -593,12 +593,12 @@
     }, 3000);
   }
 
-  // Định dạng số tiền
+
   function formatMoney(amount) {
     return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
   }
 
-  // Cập nhật số liệu
+
   function updateStats() {
     const totalPayments = payments.length;
     const totalAmount = payments.reduce((sum, p) => sum + parseFloat(p.SoTienNop), 0);
@@ -609,7 +609,7 @@
     document.getElementById('totalDebt').textContent = formatMoney(totalDebt);
   }
 
-  // Vẽ lại bảng
+
   function renderPayments() {
     const tbody = document.getElementById('paymentsTableBody');
     const emptyState = document.getElementById('emptyState');
@@ -643,7 +643,7 @@
     updateStats();
   }
 
-  // Tìm kiếm
+
   function searchPayments() {
     const term = document.getElementById('searchInput').value.toLowerCase();
     filteredPayments = term
@@ -656,7 +656,7 @@
     renderPayments();
   }
 
-  // Mở modal (chỉ thêm mới)
+
   function openModal() {
     const title = document.getElementById('modalTitle');
     const form = document.getElementById('paymentForm');
@@ -669,12 +669,12 @@
     document.getElementById('paymentModal').style.display = 'block';
   }
 
-  // Đóng modal
+
   function closeModal() {
     document.getElementById('paymentModal').style.display = 'none';
   }
 
-  // Cập nhật thông tin nợ khi chọn độc giả
+
   function updateDebtInfo() {
     const MaDocGia = document.getElementById('MaDocGia').value;
     const soTienNop = parseFloat(document.getElementById('SoTienNop').value) || 0;
@@ -686,13 +686,13 @@
         const currentDebt = docGia.debt;
         const remainingDebt = Math.max(0, currentDebt - soTienNop);
         
-        // Luôn hiển thị "hiện tại" vì chỉ có thêm mới
+
         document.getElementById('debtLabel').textContent = 'hiện tại';
         document.getElementById('currentDebt').textContent = formatMoney(currentDebt);
         document.getElementById('remainingDebt').textContent = formatMoney(remainingDebt);
         debtInfo.style.display = 'block';
         
-        // Validate số tiền nộp - quan trọng: phải dùng currentDebt để validate
+
         const soTienNopInput = document.getElementById('SoTienNop');
         const saveBtn = document.getElementById('saveBtn');
         
@@ -710,7 +710,7 @@
     }
   }
 
-  // Lưu phiếu thu (chỉ thêm mới)
+
   async function savePayment(e) {
     e.preventDefault();
     
@@ -725,7 +725,7 @@
     try {
       const data = { MaDocGia, SoTienNop };
       
-      // Chỉ tạo mới
+
       const response = await goApi('/api/fine-payments', 'POST', data);
       if (response.success) {
         payments.push({
@@ -755,7 +755,7 @@ if (docGiaIndex !== -1) docGias[docGiaIndex].debt -= SoTienNop;
     }
   }
 
-  // Xóa phiếu thu
+
   async function deletePayment(id) {
     const payment = payments.find(p => p.id === id);
     if (!payment) return;
@@ -789,20 +789,20 @@ if (docGiaIndex !== -1) docGias[docGiaIndex].debt -= SoTienNop;
     showToast('Có lỗi JavaScript xảy ra', 'error');
   });
 
-  // Khởi chạy khi DOM sẵn sàng
+
   document.addEventListener('DOMContentLoaded', () => {
     console.log('Payments loaded:', payments.length);
     console.log('Readers loaded:', docGias.length);
     console.log('CSRF Token:', csrfToken);
     
-    // Gán sự kiện
+
     document.getElementById('searchInput').addEventListener('input', searchPayments);
     document.getElementById('paymentForm').addEventListener('submit', savePayment);
     document.getElementById('paymentModal').addEventListener('click', e => {
       if (e.target === e.currentTarget) closeModal();
     });
     
-    // Sự kiện thay đổi độc giả và số tiền
+
     document.getElementById('MaDocGia').addEventListener('change', updateDebtInfo);
     document.getElementById('SoTienNop').addEventListener('input', updateDebtInfo);
     

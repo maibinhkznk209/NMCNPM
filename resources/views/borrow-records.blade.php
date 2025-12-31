@@ -262,14 +262,14 @@
       display: table-cell;
     }
 
-    th:nth-child(1) { width: 8%; }   /* Mã phiếu */
-    th:nth-child(2) { width: 15%; }  /* Thông tin độc giả */
-    th:nth-child(3) { width: 18%; }  /* Thông tin sách */
-    th:nth-child(4) { width: 8%; }   /* Ngày mượn */
-    th:nth-child(5) { width: 8%; }   /* Ngày hẹn trả */
-    th:nth-child(6) { width: 8%; }   /* Ngày trả thực tế */
-    th:nth-child(7) { width: 10%; }  /* Trạng thái */
-    th:nth-child(8) { width: 25%; }  /* Hành động */
+    th:nth-child(1) { width: 8%; }   
+    th:nth-child(2) { width: 15%; }  
+    th:nth-child(3) { width: 18%; }  
+    th:nth-child(4) { width: 8%; }   
+    th:nth-child(5) { width: 8%; }   
+    th:nth-child(6) { width: 8%; }   
+    th:nth-child(7) { width: 10%; }  
+    th:nth-child(8) { width: 25%; }  
 
     /* Responsive actions for smaller containers */
     @media (max-width: 1400px) {
@@ -1423,7 +1423,7 @@
           <label>📖 Thông tin phiếu mượn</label>
           <div style="background: #f7fafc; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
             <div id="extendBorrowInfo">
-              <!-- Thông tin phiếu mượn sẽ được cập nhật khi mở modal -->
+              
             </div>
           </div>
         </div>
@@ -1452,10 +1452,10 @@
     <div class="modal-content" style="max-width: 900px;">
       <h2 style="margin-bottom: 25px;">📋 Chi tiết phiếu mượn</h2>
       
-      <!-- Thông tin phiếu mượn -->
+      
       <div id="borrowDetailInfo" class="borrow-detail-info" style="margin-bottom: 30px;"></div>
       
-      <!-- Danh sách sách -->
+      
       <div class="books-detail-container" style="margin-bottom: 30px;">
         <h3>📚 Danh sách sách được mượn</h3>
         <div class="books-detail-table-container">

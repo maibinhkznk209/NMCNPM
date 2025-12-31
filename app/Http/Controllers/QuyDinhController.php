@@ -14,7 +14,7 @@ class QuyDinhController extends Controller
         return [
             'id' => $qd->getKey(),               // = MaThamSo theo QuyDinh.php
             'TenThamSo' => $qd->TenThamSo,
-            'GiaTri' => (string) $qd->GiaTri,    // ép string cho khớp test
+            'GiaTri' => (string) $qd->GiaTri,
         ];
     }
 
@@ -29,7 +29,7 @@ class QuyDinhController extends Controller
         );
         $quyDinhs = QuyDinh::orderBy('TenThamSo')->get();
 
-        // Nếu là AJAX/JSON request, trả về JSON
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,

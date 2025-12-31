@@ -37,7 +37,7 @@ class DocGiaSeeder extends Seeder
                 'Email' => 'tranthibinh@email.com',
                 'NgayLapThe' => '2024-02-01',
                 'NgayHetHan' => '2026-02-01',
-                'TongNo' => 25000.00  // Có nợ 25k
+                'TongNo' => 25000.00
             ],
             [
                 'TenDocGia' => 'Lê Minh Cường',
@@ -57,7 +57,7 @@ class DocGiaSeeder extends Seeder
                 'Email' => 'phamthidung@email.com',
                 'NgayLapThe' => '2024-01-20',
                 'NgayHetHan' => '2025-01-20',
-                'TongNo' => 50000.00  // Có nợ 50k
+                'TongNo' => 50000.00
             ],
             [
                 'TenDocGia' => 'Hoàng Văn Em',
@@ -77,7 +77,7 @@ class DocGiaSeeder extends Seeder
                 'Email' => 'vuthifan@email.com',
                 'NgayLapThe' => '2024-04-01',
                 'NgayHetHan' => '2026-04-01',
-                'TongNo' => 15000.00  // Có nợ 15k
+                'TongNo' => 15000.00
             ],
             [
                 'TenDocGia' => 'Đặng Minh Giang',

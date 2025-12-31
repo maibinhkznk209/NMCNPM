@@ -158,7 +158,7 @@
             <p>Hệ thống quản lý các loại độc giả trong thư viện</p>
         </div>
 
-        {{-- Thẻ thông báo thành công/lỗi --}}
+        
         @if (session('success'))
             <div class="toast success" id="toast-message">{{ session('success') }}</div>
         @endif
@@ -183,7 +183,7 @@
                     <input type="text" name="search" placeholder="Tìm kiếm loại độc giả..." value="{{ request('search') }}" />
                     <span class="search-icon">🔍</span>
                 </div>
-                {{-- Giữ lại bộ lọc khi tìm kiếm --}}
+                
                 @if (request('sort'))
                     <input type="hidden" name="sort" value="{{ request('sort') }}">
                 @endif
@@ -246,7 +246,7 @@
     </div>
     </div>
 
-    {{-- Modal thêm loại độc giả --}}
+    
     <div id="addModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -268,7 +268,7 @@
         </div>
     </div>
 
-    {{-- Modal sửa loại độc giả --}}
+    
     <div id="editModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -294,7 +294,7 @@
 
 @push('scripts')
 <script>
-    // Script đơn giản để ẩn thông báo sau vài giây
+
     document.addEventListener('DOMContentLoaded', function() {
         const toast = document.getElementById('toast-message');
         if (toast) {
@@ -394,7 +394,7 @@
     function validateAddForm() {
         let isValid = true;
         
-        // Kiểm tra tên loại độc giả
+
         const tenLoaiDocGia = document.getElementById('TenLoaiDocGia');
         if (!tenLoaiDocGia.value.trim()) {
             showToast('Vui lòng nhập tên loại độc giả', 'error');
@@ -412,7 +412,7 @@
     function validateEditForm() {
         let isValid = true;
         
-        // Kiểm tra tên loại độc giả
+
         const tenLoaiDocGia = document.getElementById('editTenLoaiDocGia');
         if (!tenLoaiDocGia.value.trim()) {
             showToast('Vui lòng nhập tên loại độc giả', 'error');

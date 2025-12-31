@@ -30,10 +30,7 @@ class Sach extends Model
         'TriGia' => 'decimal:2',
     ];
 
-    /**
-     * Compatibility aliases:
-     * Một số controller/view/test gọi các tên này.
-     */
+    
     public function dauSach()
     {
         return $this->S_DS();
@@ -49,25 +46,25 @@ class Sach extends Model
         return $this->S_CS();
     }
 
-    // Quan hệ với NXB
+
     public function S_NXB()
     {
         return $this->belongsTo(NhaXuatBan::class, 'MaNXB', 'MaNXB');
     }
 
-    // 1 SACH có nhiều CUONSACH
+
     public function S_CS()
     {
         return $this->hasMany(CuonSach::class, 'MaSach', 'MaSach');
     }
 
-    // Chi tiết phiếu mượn theo sách
+
     public function S_PM()
     {
         return $this->hasMany(CT_PhieuMuon::class, 'MaSach', 'MaSach');
     }
 
-    // Thuộc DAUSACH
+
     public function S_DS()
     {
         return $this->belongsTo(DauSach::class, 'MaDauSach', 'MaDauSach');

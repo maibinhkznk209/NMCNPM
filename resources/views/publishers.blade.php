@@ -489,10 +489,10 @@
 
 @push('scripts')
 <script>
-  // Lấy CSRF token từ meta
+
   const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-  // Khởi tạo dữ liệu từ server
+
   let publishers = [
     @foreach ($nhaXuatBans as $nxb)
       {
@@ -505,7 +505,7 @@
   let filteredPublishers = [...publishers];
   let currentEditId = null;
 
-  // Hàm AJAX chung dùng fetch
+
   async function goApi(url, method, data = null) {
     const opts = {
       method,
@@ -526,7 +526,7 @@
     return responseData;
   }
 
-  // Hiển thị thông báo toast
+
   function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
@@ -540,12 +540,12 @@
     }, 3000);
   }
 
-  // Cập nhật số liệu
+
   function updateStats() {
     document.getElementById('totalPublishers').textContent = publishers.length;
   }
 
-  // Vẽ lại bảng
+
   function renderPublishers() {
     const tbody = document.getElementById('publishersTableBody');
     const emptyState = document.getElementById('emptyState');
@@ -570,7 +570,7 @@
     updateStats();
   }
 
-  // Tìm kiếm
+
   function searchPublishers() {
     const term = document.getElementById('searchInput').value.toLowerCase();
     filteredPublishers = term
@@ -582,7 +582,7 @@
     renderPublishers();
   }
 
-  // Mở modal (thêm hoặc sửa)
+
   function openModal(id = null) {
     currentEditId = null;
     const title = document.getElementById('modalTitle');
@@ -602,13 +602,13 @@
     document.getElementById('publisherModal').style.display = 'block';
   }
 
-  // Đóng modal
+
   function closeModal() {
     document.getElementById('publisherModal').style.display = 'none';
     currentEditId = null;
   }
 
-  // Lưu (thêm hoặc cập nhật)
+
   async function savePublisher(e) {
     e.preventDefault();
     const name = document.getElementById('publisherName').value.trim();
@@ -623,10 +623,10 @@
       const data = { TenNXB: name };
       
       if (currentEditId) {
-        // Cập nhật
+
         response = await goApi(`/api/nhaxuatban/${currentEditId}`, 'PUT', data);
         if (response.success) {
-          // Cập nhật trong mảng publishers
+
           publishers = publishers.map(publisher =>
             publisher.id === currentEditId ? { 
               ...publisher, 
@@ -636,7 +636,7 @@
           showToast('Cập nhật nhà xuất bản thành công!');
         }
       } else {
-        // Tạo mới
+
         response = await goApi('/api/nhaxuatban', 'POST', data);
         if (response.success) {
           publishers.push({
@@ -655,7 +655,7 @@
     }
   }
 
-  // Xóa
+
   async function deletePublisher(id) {
     const publisher = publishers.find(p => p.id === id);
     if (!publisher) return;
@@ -683,7 +683,7 @@
     showToast('Có lỗi JavaScript xảy ra', 'error');
   });
 
-  // Khởi chạy khi DOM sẵn sàng
+
   document.addEventListener('DOMContentLoaded', () => {
     console.log('Publishers loaded:', publishers.length);
     console.log('CSRF Token:', csrfToken);

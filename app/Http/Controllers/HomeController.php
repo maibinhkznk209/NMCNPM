@@ -15,10 +15,10 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
-        // Tên sách nằm ở DAUSACH.TenDauSach
+
         $query = Sach::with(['dauSach', 'dauSach.theLoai', 'dauSach.tacGias', 'nhaXuatBan']);
 
-        // Search: mã sách / tên đầu sách / thể loại / NXB / tác giả
+
         if ($request->filled('search')) {
             $search = trim((string) $request->get('search'));
 
@@ -41,7 +41,7 @@ class HomeController extends Controller
             }
         }
 
-        // Filter thể loại
+
         if ($request->filled('genre') && $request->get('genre') !== 'all') {
             $genre = $request->get('genre');
             $query->whereHas('dauSach', function ($q) use ($genre) {
@@ -49,7 +49,7 @@ class HomeController extends Controller
             });
         }
 
-        // Filter tác giả
+
         if ($request->filled('author') && $request->get('author') !== 'all') {
             $author = $request->get('author');
             $query->whereHas('dauSach.tacGias', function ($q) use ($author) {
@@ -63,7 +63,7 @@ class HomeController extends Controller
             $query->where('MaNXB', $publisher);
         }
 
-        // Filter tình trạng CUỐN SÁCH (CUONSACH.TinhTrang)
+
         if ($request->filled('status') && $request->get('status') !== 'all') {
             $status = (int) $request->get('status');
             $query->whereHas('cuonSachs', function ($q) use ($status) {
@@ -71,7 +71,7 @@ class HomeController extends Controller
             });
         }
 
-        // Sort (chỉ các cột thuộc SACH)
+
         $sortBy = $request->get('sort', 'MaSach');
         $sortOrder = $request->get('order', 'asc');
 
@@ -79,7 +79,7 @@ class HomeController extends Controller
             $sortOrder = 'asc';
         }
 
-        // Không sort theo TinhTrang vì tình trạng ở CUONSACH
+
         if (!in_array($sortBy, ['MaSach', 'NamXuatBan', 'TriGia', 'SoLuong'], true)) {
             $sortBy = 'MaSach';
         }

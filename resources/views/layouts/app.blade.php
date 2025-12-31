@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <title>@yield('title', 'Hệ thống thư viện')</title>
   <link rel="icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">  
-  <!-- CSS riêng cho view có thể push vào -->
+  
   @stack('styles')
   <script>
     (() => {

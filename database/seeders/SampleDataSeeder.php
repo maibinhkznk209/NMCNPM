@@ -40,7 +40,7 @@ class SampleDataSeeder extends Seeder
      * ========================= */
     private function infoLine(string $msg): void
     {
-        // chạy artisan sẽ có $this->command, còn không thì echo
+
         if ($this->command) $this->command->info($msg);
         else echo $msg . PHP_EOL;
     }
@@ -228,9 +228,7 @@ class SampleDataSeeder extends Seeder
         }
     }
 
-    /* =========================
-     * 5) THAMSO / QUYDINH (tuỳ dự án)
-     * ========================= */
+    
     private function createRegulations(): void
     {
         $this->infoLine("Tạo tham số/quy định...");
@@ -312,7 +310,7 @@ class SampleDataSeeder extends Seeder
             if ($hasMaDocGia) {
                 $this->upsert('DOCGIA', ['MaDocGia' => $r['MaDocGia']], $r);
             } else {
-                // fallback nếu DOCGIA chưa có MaDocGia
+
                 $fallback = $r;
                 unset($fallback['MaDocGia']);
                 $this->upsert('DOCGIA', ['Email' => $r['Email']], $fallback);
@@ -320,9 +318,7 @@ class SampleDataSeeder extends Seeder
         }
     }
 
-    /* =========================
-     * 7) DAUSACH (TenDauSach) + SACH (MaDauSach, MaNXB, ...) + CUONSACH (nếu có)
-     * ========================= */
+    
     private function createBooks(): void
     {
         $this->infoLine("Tạo đầu sách/sách/cuốn sách...");
@@ -347,7 +343,7 @@ class SampleDataSeeder extends Seeder
             return;
         }
 
-        // map tên -> PK
+
         $mapTheLoai = DB::table('THELOAI')->pluck($pkTheLoai, 'TenTheLoai')->toArray();
         $mapNXB     = DB::table('NHAXUATBAN')->pluck($pkNXB, 'TenNXB')->toArray();
         $mapTacGia  = DB::table('TACGIA')->pluck($pkTacGia, 'TenTacGia')->toArray();
@@ -582,7 +578,7 @@ class SampleDataSeeder extends Seeder
                 continue;
             }
 
-            // 7.2) CT_TACGIA (nếu có)
+
             if (Schema::hasTable('CT_TACGIA') && Schema::hasColumn('CT_TACGIA', 'MaDauSach') && Schema::hasColumn('CT_TACGIA', 'MaTacGia')) {
                 DB::table('CT_TACGIA')->where('MaDauSach', $maDauSach)->delete();
 
@@ -607,13 +603,13 @@ class SampleDataSeeder extends Seeder
                 'TriGia'     => $b['TriGia'],
                 'SoLuong'    => $b['SoLuong'],
             ];
-            // nếu bảng SACH còn cột TinhTrang thì set mặc định 1
+
             if (Schema::hasColumn('SACH', 'TinhTrang')) {
                 $sachData['TinhTrang'] = 1;
             }
             $sachData = $this->onlyExistingColumns('SACH', $sachData);
 
-            // tránh nhân bản: xoá bản ghi SACH cũ theo (MaDauSach, MaNXB, NamXuatBan) nếu tồn tại
+
             DB::table('SACH')
                 ->where('MaDauSach', $maDauSach)
                 ->where('NamXuatBan', $b['NamXuatBan'])
@@ -622,7 +618,7 @@ class SampleDataSeeder extends Seeder
 
             DB::table('SACH')->insert($sachData);
 
-            // lấy MaSach vừa insert
+
             $maSach = DB::table('SACH')
                 ->where('MaDauSach', $maDauSach)
                 ->where('NamXuatBan', $b['NamXuatBan'])
@@ -634,9 +630,9 @@ class SampleDataSeeder extends Seeder
                 continue;
             }
 
-            // 7.4) CUONSACH (nếu có)
+
             if (Schema::hasTable('CUONSACH') && Schema::hasColumn('CUONSACH', 'MaSach')) {
-                // làm sạch cuốn cũ của mã sách này để tránh đếm sai
+
                 DB::table('CUONSACH')->where('MaSach', $maSach)->delete();
 
                 $ngayNhap = Carbon::parse($b['NgayNhap'])->toDateString();

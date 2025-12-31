@@ -313,7 +313,7 @@ button:active {
     animation: slideDown 0.3s ease;
 }
 
-/* Thay đổi này ở chỗ bạn đang định nghĩa style cho input */
+
 input[type="email"],
 input[type="password"],
 input[type="text"] {

@@ -483,10 +483,10 @@
 
 @push('scripts')
 <script>
-  // Lấy CSRF token từ meta
+
   const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-  // Khởi tạo dữ liệu từ server
+
   let authors = [
     @foreach ($tacGias as $tacGia)
       {
@@ -499,7 +499,7 @@
   let filteredAuthors = [...authors];
   let currentEditId = null;
 
-  // Hàm AJAX chung dùng fetch
+
   async function goApi(url, method, data = null) {
     const opts = {
       method,
@@ -520,7 +520,7 @@
     return responseData;
   }
 
-  // Hiển thị thông báo toast
+
   function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
@@ -534,12 +534,12 @@
     }, 3000);
   }
 
-  // Cập nhật số liệu
+
   function updateStats() {
     document.getElementById('totalAuthors').textContent = authors.length;
   }
 
-  // Vẽ lại bảng
+
   function renderAuthors() {
     const tbody = document.getElementById('authorsTableBody');
     const emptyState = document.getElementById('emptyState');
@@ -564,7 +564,7 @@
     updateStats();
   }
 
-  // Tìm kiếm
+
   function searchAuthors() {
     const term = document.getElementById('searchInput').value.toLowerCase();
     filteredAuthors = term
@@ -573,7 +573,7 @@
     renderAuthors();
   }
 
-  // Mở modal (thêm hoặc sửa)
+
   function openModal(id = null) {
     currentEditId = null;
     const title = document.getElementById('modalTitle');
@@ -592,13 +592,13 @@
     document.getElementById('authorModal').style.display = 'block';
   }
 
-  // Đóng modal
+
   function closeModal() {
     document.getElementById('authorModal').style.display = 'none';
     currentEditId = null;
   }
 
-  // Lưu (thêm hoặc cập nhật)
+
   async function saveAuthor(e) {
     e.preventDefault();
     const name = document.getElementById('authorName').value.trim();
@@ -610,17 +610,17 @@
     try {
       let response;
       if (currentEditId) {
-        // Cập nhật
+
         response = await goApi(`/api/tacgia/${currentEditId}`, 'PUT', { TenTacGia: name });
         if (response.success) {
-          // Cập nhật trong mảng authors
+
           authors = authors.map(author =>
             author.id === currentEditId ? { ...author, name: response.data.TenTacGia } : author
           );
           showToast('Cập nhật tác giả thành công!');
         }
       } else {
-        // Tạo mới
+
         response = await goApi('/api/tacgia', 'POST', { TenTacGia: name });
         if (response.success) {
           authors.push({
@@ -639,7 +639,7 @@
     }
   }
 
-  // Xóa
+
   async function deleteAuthor(id) {
     const author = authors.find(a => a.id === id);
     if (!author) return;
@@ -667,7 +667,7 @@
     showToast('Có lỗi JavaScript xảy ra', 'error');
   });
 
-  // Khởi chạy khi DOM sẵn sàng
+
   document.addEventListener('DOMContentLoaded', () => {
     console.log('Authors loaded:', authors.length);
     console.log('CSRF Token:', csrfToken);

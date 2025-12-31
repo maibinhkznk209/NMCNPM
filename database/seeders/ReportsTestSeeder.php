@@ -6,10 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-/**
- * Seeder phục vụ test báo cáo: tạo dữ liệu tối thiểu đúng schema hiện tại
- * - Ten sách nằm ở DAUSACH.TenDauSach
- */
+
 class ReportsTestSeeder extends Seeder
 {
     public function run(): void

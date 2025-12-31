@@ -6,12 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Bảng liên kết SACH - THELOAI (n-n).
-     *
-     * Lưu ý: pipeline hiện tại đã có DAUSACH.MaTheLoai (1 DAUSACH thuộc 1 THELOAI),
-     * nhưng giữ bảng này để tương thích/ mở rộng (nhiều thể loại cho 1 sách) nếu cần.
-     */
+    
     public function up(): void
     {
         Schema::create('SACH_THELOAI', function (Blueprint $table) {

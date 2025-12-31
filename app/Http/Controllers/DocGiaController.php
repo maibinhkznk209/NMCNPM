@@ -30,7 +30,7 @@ class DocGiaController extends Controller
         $loaiDocGias = LoaiDocGia::orderBy('TenLoaiDocGia')->get();
         $borrowDurationDays = $this->getBorrowDurationDays();
 
-        // Nếu là AJAX request, trả về JSON
+
         if ($request->expectsJson()) {
             return response()->json([
                 'docGias' => $docGias,
@@ -156,7 +156,7 @@ class DocGiaController extends Controller
             
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->expectsJson() || $request->ajax()) {
-                // Lấy thông báo lỗi đầu tiên từ validation errors
+
                 $firstError = collect($e->errors())->first();
                 $errorMessage = is_array($firstError) ? $firstError[0] : $firstError;
                 
@@ -285,7 +285,7 @@ class DocGiaController extends Controller
             
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->expectsJson() || $request->ajax()) {
-                // Lấy thông báo lỗi đầu tiên từ validation errors
+
                 $firstError = collect($e->errors())->first();
                 $errorMessage = is_array($firstError) ? $firstError[0] : $firstError;
                 

@@ -71,7 +71,7 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
         
         localStorage.setItem('userData', JSON.stringify(userData));
         localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('username', username); // hiển thị tên
+        localStorage.setItem('username', username);
 
         
         showMessage('successMessage', 'Đăng nhập thành công! Đang chuyển hướng...');

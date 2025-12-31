@@ -8,11 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        /**
-         * CT_PHIEUMUON
-         * - Theo CT_PHIEUMUONFactory: MaPhieuMuon, MaSach, NgayTra, TienPhat
-         * - MaDocGia đã nằm ở PHIEUMUON, nên không lưu lặp lại ở chi tiết.
-         */
+        
         Schema::create('CT_PHIEUMUON', function (Blueprint $table) {
             $table->string('MaPhieuMuon', 20);
             $table->unsignedBigInteger('MaSach');
@@ -28,7 +24,7 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
 
-            // Pipeline hiện tại: SACH PK = MaSach (int)
+
             $table->foreign('MaSach')
                 ->references('MaSach')
                 ->on('SACH')

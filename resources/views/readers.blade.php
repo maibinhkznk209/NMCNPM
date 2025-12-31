@@ -189,8 +189,8 @@
     border-radius: 15px;
     font-size: 12px;
     font-weight: 600;
-    display: inline-block;      /* đảm bảo áp dụng nowrap đúng */
-    white-space: nowrap;        /* không xuống dòng */
+    display: inline-block;      
+    white-space: nowrap;        
     }
 
     .status-active {
@@ -284,7 +284,7 @@
             <p>Hệ thống quản lý thông tin độc giả thư viện</p>
         </div>
 
-        {{-- Thẻ thông báo thành công/lỗi --}}
+        
         @if (session('success'))
             <div class="toast success" id="toast-message">{{ session('success') }}</div>
         @endif
@@ -407,7 +407,7 @@
         </div>
     </div>
 
-    {{-- Modal thêm độc giả --}}
+    
     <div id="addModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -515,7 +515,7 @@
         </div>
     </div>
 
-    {{-- Modal sửa độc giả --}}
+    
     <div id="editModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -624,7 +624,7 @@
         </div>
     </div>
 
-    {{-- Modal mượn sách --}}
+    
     <div id="borrowModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -798,7 +798,7 @@
         return toInputDate(date);
     }
 
-    // Script đơn giản để ẩn thông báo sau vài giây
+
     document.addEventListener('DOMContentLoaded', function() {
         const toast = document.getElementById('toast-message');
         if (toast) {

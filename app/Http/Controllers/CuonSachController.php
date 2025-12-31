@@ -9,9 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class CuonSachController extends Controller
 {
-    /**
-     * BM6 - Tra cứu cuốn sách (CUONSACH join SACH/DAUSACH/...)
-     */
+    
     public function index(Request $request)
     {
         $driver = DB::getDriverName();
@@ -112,9 +110,7 @@ class CuonSachController extends Controller
         }
     }
 
-    /**
-     * BM10 - Cập nhật tình trạng cuốn sách
-     */
+    
     public function updateTinhTrang(Request $request, $maCuonSach)
     {
         $request->validate([

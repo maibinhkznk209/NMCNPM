@@ -475,10 +475,10 @@
 
 @push('scripts')
 <script>
-  // Lấy CSRF token từ meta
+
   const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-  // Khởi tạo dữ liệu từ server
+
   let genres = [
     @foreach ($theLoais as $theLoai)
       {
@@ -491,7 +491,7 @@
   let filteredGenres = [...genres];
   let currentEditId = null;
 
-  // Hàm AJAX chung dùng fetch
+
   async function goApi(url, method, data = null) {
     const opts = {
       method,
@@ -512,7 +512,7 @@
     return responseData;
   }
 
-  // Hiển thị thông báo toast
+
   function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
@@ -526,12 +526,12 @@
     }, 3000);
   }
 
-  // Cập nhật số liệu
+
   function updateStats() {
     document.getElementById('totalGenres').textContent = genres.length;
   }
 
-  // Vẽ lại bảng
+
   function renderGenres() {
     const tbody = document.getElementById('genresTableBody');
     const emptyState = document.getElementById('emptyState');
@@ -556,7 +556,7 @@
     updateStats();
   }
 
-  // Tìm kiếm
+
   function searchGenres() {
     const term = document.getElementById('searchInput').value.toLowerCase();
     filteredGenres = term
@@ -565,7 +565,7 @@
     renderGenres();
   }
 
-  // Mở modal (thêm hoặc sửa)
+
   function openModal(id = null) {
     currentEditId = null;
     const title = document.getElementById('modalTitle');
@@ -584,13 +584,13 @@
     document.getElementById('genreModal').style.display = 'block';
   }
 
-  // Đóng modal
+
   function closeModal() {
     document.getElementById('genreModal').style.display = 'none';
     currentEditId = null;
   }
 
-  // Lưu (thêm hoặc cập nhật)
+
   async function saveGenre(e) {
     e.preventDefault();
     const name = document.getElementById('genreName').value.trim();
@@ -602,17 +602,17 @@
     try {
       let response;
       if (currentEditId) {
-        // Cập nhật
+
         response = await goApi(`/theloai/${currentEditId}`, 'PUT', { TenTheLoai: name });
         if (response.success) {
-          // Cập nhật trong mảng genres
+
           genres = genres.map(g =>
             g.id === currentEditId ? { ...g, name: response.data.TenTheLoai } : g
           );
           showToast('Cập nhật thể loại thành công!');
         }
       } else {
-        // Tạo mới
+
         response = await goApi('/theloai', 'POST', { TenTheLoai: name });
         if (response.success) {
           genres.push({
@@ -631,7 +631,7 @@
     }
   }
 
-  // Xóa
+
   async function deleteGenre(id) {
     const g = genres.find(genre => genre.id === id);
     if (!g) return;
@@ -653,7 +653,7 @@
     }
   }
 
-  // Định dạng ngày
+
   function formatDate(d) {
     return new Date(d).toLocaleDateString('vi-VN');
   }
@@ -664,7 +664,7 @@
     showToast('Có lỗi JavaScript xảy ra', 'error');
   });
 
-  // Khởi chạy khi DOM sẵn sàng
+
   document.addEventListener('DOMContentLoaded', () => {
     console.log('Genres loaded:', genres.length);
     console.log('CSRF Token:', csrfToken);

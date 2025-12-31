@@ -19,7 +19,7 @@ class DocGiaFactory extends Factory
         $ngayLapThe = $this->faker->dateTimeBetween('-1 year', 'now');
         $loai = LoaiDocGia::factory()->create();
 
-        // Mặc định thẻ có hạn 6 tháng (các bài test có thể ghi đè bằng ThamSo).
+
         $ngayHetHan = (clone $ngayLapThe)->modify('+180 days');
 
         return [

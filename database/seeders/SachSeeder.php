@@ -29,7 +29,7 @@ class SachSeeder extends Seeder
         $dauSachIds = DB::table('DAUSACH')->pluck('MaDauSach')->toArray();
         $nxbIds = DB::table('NHAXUATBAN')->pluck('MaNXB')->toArray();
 
-        // tạo ấn bản SACH + sinh CUONSACH theo SoLuong
+
         for ($i = 0; $i < 6; $i++) {
             $maDauSach = $dauSachIds[array_rand($dauSachIds)];
             $maNXB = $nxbIds[array_rand($nxbIds)];

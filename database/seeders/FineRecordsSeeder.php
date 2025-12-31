@@ -50,7 +50,7 @@ class FineRecordsSeeder extends Seeder
 
             $maPhieu = $this->nextUniqueMaPhieuPhat();
 
-            // KHÔNG dùng create() để tránh vấn đề fillable; set trực tiếp rồi save()
+
             $phieuThu = new PhieuPhat();
             $phieuThu->MaPhieuPhat = $maPhieu;
             $phieuThu->MaDocGia    = $docGia->MaDocGia;

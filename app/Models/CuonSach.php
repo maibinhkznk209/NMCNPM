@@ -29,10 +29,10 @@ class CuonSach extends Model
     public $timestamps = false;
 
     // Constants for TinhTrang
-    const TINH_TRANG_DANG_MUON = 0;    // Đang được mượn
-    const TINH_TRANG_CO_SAN = 1;       // Có sẵn (có thể mượn)
-    const TINH_TRANG_HONG = 2;         // Hỏng (không thể mượn)
-    const TINH_TRANG_BI_MAT = 3;       // Bị mất (không thể mượn)
+    const TINH_TRANG_DANG_MUON = 0;
+    const TINH_TRANG_CO_SAN = 1;
+    const TINH_TRANG_HONG = 2;
+    const TINH_TRANG_BI_MAT = 3;
 
     public function CS_S()
     {

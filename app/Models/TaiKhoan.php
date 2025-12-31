@@ -42,10 +42,7 @@ class TaiKhoan extends Authenticatable
         return $this->MatKhau;
     }
 
-    /**
-     * Relationship with VaiTro (Many-to-One)
-     * Một tài khoản thuộc về một vai trò
-     */
+    
     public function vaiTro()
     {
         return $this->belongsTo(VaiTro::class, 'vaitro_id');

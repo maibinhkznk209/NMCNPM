@@ -25,9 +25,7 @@ class DauSach extends Model
         'NgayNhap' => 'date',
     ];
 
-    /**
-     * Compatibility aliases: controller/view/test đang dùng theLoai/tacGias.
-     */
+    
     public function theLoai()
     {
         return $this->DS_TL();
@@ -38,7 +36,7 @@ class DauSach extends Model
         return $this->DS_TG();
     }
 
-    // N- N tác giả qua CT_TACGIA
+
     public function DS_TG()
     {
         return $this->belongsToMany(
@@ -49,13 +47,13 @@ class DauSach extends Model
         );
     }
 
-    // 1 đầu sách thuộc 1 thể loại
+
     public function DS_TL()
     {
         return $this->belongsTo(TheLoai::class, 'MaTheLoai', 'MaTheLoai');
     }
 
-    // 1 đầu sách có nhiều bản ghi SACH (theo NXB/năm/trị giá…)
+
     public function DS_S()
     {
         return $this->hasMany(Sach::class, 'MaDauSach', 'MaDauSach');

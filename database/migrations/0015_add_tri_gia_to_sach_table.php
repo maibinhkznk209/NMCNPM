@@ -8,9 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Pipeline hiện tại đã đưa TriGia vào 0010_create_sach_table.php.
-        // Giữ migration này để tránh fail khi chạy trên DB cũ:
-        // - Nếu TriGia chưa có thì mới thêm.
+
+
+
         if (!Schema::hasTable('SACH')) {
             return;
         }

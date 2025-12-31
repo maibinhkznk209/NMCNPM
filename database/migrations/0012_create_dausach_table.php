@@ -14,7 +14,7 @@ return new class extends Migration
             $table->unsignedBigInteger('MaTheLoai');
             $table->dateTime('NgayNhap')->nullable();
 
-            // Theo sơ đồ: THELOAI PK = MaTheLoai
+
             $table->foreign('MaTheLoai')
                 ->references('MaTheLoai')
                 ->on('THELOAI')

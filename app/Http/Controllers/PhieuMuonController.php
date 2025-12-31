@@ -136,7 +136,7 @@ class PhieuMuonController extends Controller
         $data = $validator->validated();
         $data['MaSach'] = array_values(array_unique(array_map('intval', $data['MaSach'])));
 
-        // Normalize statuses if provided (1: tốt, 2: hỏng, 3: mất)
+
         $statuses = $payload['book_statuses'] ?? [];
         if (is_array($statuses)) {
             $normalized = [];
@@ -150,7 +150,7 @@ class PhieuMuonController extends Controller
             }
 
             if ($usesLegacyValues) {
-                // Legacy UI used 1 (tốt), 3 (hỏng), 4 (mất)
+
                 foreach ($normalized as $k => $v) {
                     if ($v === 3) {
                         $normalized[$k] = 2;
@@ -185,15 +185,7 @@ class PhieuMuonController extends Controller
     }
 
 
-    /**
-     * =========================
-     * INVENTORY (TÌNH TRẠNG SÁCH)
-     * Ưu tiên dùng CUONSACH.TinhTrang (0/1/2/3) nếu có bảng CUONSACH.
-     * Fallback:
-     *  - SACH.TinhTrang (nếu hệ thống cũ có cột này)
-     *  - SACH.SoLuong (giảm/tăng số lượng nếu chỉ có tồn kho theo số lượng)
-     * =========================
-     */
+    
     private function hasCuonSachTable(): bool
     {
         return Schema::hasTable('CUONSACH')
@@ -211,13 +203,13 @@ class PhieuMuonController extends Controller
 
             $cuon = (clone $base)->first();
 
-            // Nếu không có cuốn trong CUONSACH -> fallback sang SACH (seed test đang như vậy)
+
             if (!$cuon) {
                 $this->markBorrowedFallbackOnSach($maSach);
                 return;
             }
 
-            // Nếu có TinhTrang thì update, không thì thôi
+
             if (Schema::hasColumn('CUONSACH', 'TinhTrang')) {
                 DB::table('CUONSACH')->where('MaCuonSach', $cuon->MaCuonSach)->update([
                     'TinhTrang' => 0,
@@ -253,11 +245,11 @@ class PhieuMuonController extends Controller
 
     private function restoreBorrowedToAvailable(int $maSach): void
     {
-        // 1 = Có sẵn
+
         if ($this->hasCuonSachTable()) {
             $cuon = DB::table('CUONSACH')
                 ->where('MaSach', $maSach)
-                ->where('TinhTrang', 0) // đang mượn
+                ->where('TinhTrang', 0)
                 ->orderBy('MaCuonSach')
                 ->lockForUpdate()
                 ->first();
@@ -282,18 +274,18 @@ class PhieuMuonController extends Controller
 
     private function setInventoryStatusOnReturn(int $maSach, int $status): void
     {
-        // status: 1=tốt(có sẵn), 2=hỏng, 3=mất
+
         $status = in_array($status, [1, 2, 3], true) ? $status : 1;
 
         if ($this->hasCuonSachTable()) {
             $cuon = DB::table('CUONSACH')
                 ->where('MaSach', $maSach)
-                ->where('TinhTrang', 0) // đang mượn
+                ->where('TinhTrang', 0)
                 ->orderBy('MaCuonSach')
                 ->lockForUpdate()
                 ->first();
 
-            // Không tìm thấy cuốn đang mượn -> bỏ qua để tránh crash (đảm bảo CT_PHIEUMUON vẫn cập nhật)
+
             if ($cuon) {
                 DB::table('CUONSACH')->where('MaCuonSach', $cuon->MaCuonSach)->update([
                     'TinhTrang' => $status,
@@ -308,7 +300,7 @@ class PhieuMuonController extends Controller
         }
 
         if (Schema::hasColumn('SACH', 'SoLuong')) {
-            // Nếu trả "tốt" thì tăng lại số lượng; hỏng/mất thì không tăng.
+
             if ($status === 1) {
                 DB::table('SACH')->where('MaSach', $maSach)->increment('SoLuong', 1);
             }
@@ -614,12 +606,12 @@ class PhieuMuonController extends Controller
                 'NgayHenTra' => $dueDate->toDateString(),
             ]);
 
-            // Mỗi phiếu mượn chỉ 1 cuốn sách.
-            // Nếu người dùng chọn nhiều sách, hệ thống sẽ tạo nhiều phiếu mượn tương ứng.
+
+
             $created = [];
 
             foreach ($maSachArr as $maSach) {
-                // quan trọng: đừng ép int nếu mã là string
+
                 $this->markBorrowed($maSach);
 
                 DB::table('CT_PHIEUMUON')->insert([
@@ -682,7 +674,7 @@ class PhieuMuonController extends Controller
             $borrowDate = $validated['borrow_date'];
             $dueDate = $validated['due_date'] ?? $borrowDate->copy()->addDays($this->getBorrowDurationDays());
 
-            // Mỗi phiếu mượn chỉ được 1 cuốn sách.
+
             if (count($maSachArr) !== 1) {
                 throw new Exception('Mỗi phiếu mượn chỉ được chọn đúng 1 cuốn sách');
             }
@@ -693,7 +685,7 @@ class PhieuMuonController extends Controller
             $oldSach = DB::table('CT_PHIEUMUON')->where('MaPhieuMuon', $id)->pluck('MaSach')->all();
 
 
-            // Hoàn trả tồn kho cho các sách cũ (trong trường hợp sửa phiếu mượn trước khi trả)
+
             foreach ($oldSach as $oldMaSach) {
                 $this->restoreBorrowedToAvailable((int)$oldMaSach);
             }
@@ -856,7 +848,7 @@ class PhieuMuonController extends Controller
 
                 $fine = $lateFinePerBook + $compensation;
 
-                // Update inventory status (ưu tiên CUONSACH.TinhTrang; fallback SACH.TinhTrang/SoLuong)
+
                 $this->setInventoryStatusOnReturn((int)$maSach, $status);
 
 // Update borrow detail
@@ -1035,9 +1027,9 @@ class PhieuMuonController extends Controller
                 'nxb.TenNXB'
             )
             ->orderBy('s.MaSach');
-        // Lọc chỉ sách còn "có sẵn" theo ưu tiên:
-        // 1) CUONSACH.TinhTrang = 1 (nếu có bảng cuốn sách)
-        // 2) SACH.TinhTrang = 1 (nếu hệ thống cũ có cột này)
+
+
+
         // 3) SACH.SoLuong > 0 (fallback)
         if (Schema::hasTable('CUONSACH') && Schema::hasColumn('CUONSACH', 'MaSach') && Schema::hasColumn('CUONSACH', 'TinhTrang')) {
             $q->whereExists(function ($sub) {
@@ -1106,15 +1098,15 @@ class PhieuMuonController extends Controller
             ->values()
             ->all();
 
-        // Xác định phiếu mượn đã trả hết hay chưa (phục vụ UI chỉnh sửa phiếu trả)
+
         $isReturnedRecord = !DB::table('CT_PHIEUMUON')
             ->where('MaPhieuMuon', $pmId)
             ->whereNull('NgayTra')
             ->exists();
 
-        // Lấy danh sách sách có thể chọn:
-        // - Sách đang "Có sẵn" (TinhTrang = 1) OR
-        // - Sách đã nằm trong phiếu mượn này (để sửa phiếu mượn/phiếu trả vẫn thấy)
+
+
+
         $hasCuonSach = Schema::hasTable('CUONSACH')
             && Schema::hasColumn('CUONSACH', 'MaSach')
             && Schema::hasColumn('CUONSACH', 'MaCuonSach');
@@ -1183,8 +1175,8 @@ class PhieuMuonController extends Controller
             ->values();
 
         // IMPORTANT:
-        // - UI hiện tại đọc data.data là một MẢNG books
-        // - Đồng thời vẫn giữ thêm selected/is_returned_record để dùng khi cần
+
+
         return response()->json([
             'success' => true,
             'data' => $books,

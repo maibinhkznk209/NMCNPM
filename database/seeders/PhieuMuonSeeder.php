@@ -17,9 +17,9 @@ class PhieuMuonSeeder extends Seeder
      */
     public function run(): void
     {
-        // Sample borrow records với các trường hợp khác nhau
+
         $borrowRecords = [
-            // 1. Đang mượn - chưa trả
+
             [
                 'MaDocGia' => 1,
                 'MaSach' => 1,
@@ -27,21 +27,21 @@ class PhieuMuonSeeder extends Seeder
                 'NgayTra' => null,
                 'TienPhat' => 0,
                 'TienDenBu' => 0,
-                'TinhTrangSach' => null, // Chưa trả
+                'TinhTrangSach' => null,
             ],
             
-            // 2. Trễ hạn - đã trả
+
             [
                 'MaDocGia' => 2,
                 'MaSach' => 2,
                 'NgayMuon' => Carbon::now()->subDays(25),
                 'NgayTra' => Carbon::now()->subDays(2),
-                'TienPhat' => 11000, // 11 ngày trễ * 1000đ
+                'TienPhat' => 11000,
                 'TienDenBu' => 0,
-                'TinhTrangSach' => 1, // Có sẵn
+                'TinhTrangSach' => 1,
             ],
             
-            // 3. Đúng hạn - đã trả
+
             [
                 'MaDocGia' => 3,
                 'MaSach' => 3,
@@ -49,32 +49,32 @@ class PhieuMuonSeeder extends Seeder
                 'NgayTra' => Carbon::now()->subDays(1),
                 'TienPhat' => 0,
                 'TienDenBu' => 0,
-                'TinhTrangSach' => 1, // Có sẵn
+                'TinhTrangSach' => 1,
             ],
             
-            // 4. Làm hỏng sách - đã trả
+
             [
                 'MaDocGia' => 1,
                 'MaSach' => 4,
                 'NgayMuon' => Carbon::now()->subDays(20),
                 'NgayTra' => Carbon::now()->subDays(3),
-                'TienPhat' => 7000, // 7 ngày trễ
-                'TienDenBu' => 50000, // Tiền đền bù sách hỏng
-                'TinhTrangSach' => 3, // Hỏng
+                'TienPhat' => 7000,
+                'TienDenBu' => 50000,
+                'TinhTrangSach' => 3,
             ],
             
-            // 5. Mất sách - đã trả
+
             [
                 'MaDocGia' => 2,
                 'MaSach' => 5,
                 'NgayMuon' => Carbon::now()->subDays(30),
                 'NgayTra' => Carbon::now()->subDays(5),
-                'TienPhat' => 16000, // 16 ngày trễ
-                'TienDenBu' => 120000, // Tiền đền bù sách mất
-                'TinhTrangSach' => 4, // Bị mất
+                'TienPhat' => 16000,
+                'TienDenBu' => 120000,
+                'TinhTrangSach' => 4,
             ],
             
-            // 6. Quá hạn - chưa trả
+
             [
                 'MaDocGia' => 3,
                 'MaSach' => 1,
@@ -82,10 +82,10 @@ class PhieuMuonSeeder extends Seeder
                 'NgayTra' => null,
                 'TienPhat' => 0,
                 'TienDenBu' => 0,
-                'TinhTrangSach' => null, // Chưa trả
+                'TinhTrangSach' => null,
             ],
             
-            // 7. Trả sớm - đã trả
+
             [
                 'MaDocGia' => 1,
                 'MaSach' => 2,
@@ -93,32 +93,32 @@ class PhieuMuonSeeder extends Seeder
                 'NgayTra' => Carbon::now()->subDays(5),
                 'TienPhat' => 0,
                 'TienDenBu' => 0,
-                'TinhTrangSach' => 1, // Có sẵn
+                'TinhTrangSach' => 1,
             ],
             
-            // 8. Trễ hạn nhẹ - đã trả
+
             [
                 'MaDocGia' => 2,
                 'MaSach' => 3,
                 'NgayMuon' => Carbon::now()->subDays(18),
                 'NgayTra' => Carbon::now()->subDays(1),
-                'TienPhat' => 4000, // 4 ngày trễ
+                'TienPhat' => 4000,
                 'TienDenBu' => 0,
-                'TinhTrangSach' => 1, // Có sẵn
+                'TinhTrangSach' => 1,
             ],
             
-            // 9. Làm hỏng nhẹ - đã trả
+
             [
                 'MaDocGia' => 3,
                 'MaSach' => 4,
                 'NgayMuon' => Carbon::now()->subDays(15),
                 'NgayTra' => Carbon::now()->subDays(2),
                 'TienPhat' => 0,
-                'TienDenBu' => 25000, // Tiền đền bù sách hỏng nhẹ
-                'TinhTrangSach' => 3, // Hỏng
+                'TienDenBu' => 25000,
+                'TinhTrangSach' => 3,
             ],
             
-            // 10. Mượn nhiều sách - một số đã trả, một số chưa
+
             [
                 'MaDocGia' => 1,
                 'MaSach' => 5,
@@ -126,7 +126,7 @@ class PhieuMuonSeeder extends Seeder
                 'NgayTra' => null,
                 'TienPhat' => 0,
                 'TienDenBu' => 0,
-                'TinhTrangSach' => null, // Chưa trả
+                'TinhTrangSach' => null,
             ],
         ];
 
@@ -136,16 +136,16 @@ class PhieuMuonSeeder extends Seeder
             $book = Sach::find($record['MaSach']);
             
             if ($reader && $book) {
-                // Tạo phiếu mượn
+
                 $phieuMuon = new PhieuMuon([
                     'MaDocGia' => $record['MaDocGia'],
                     'NgayMuon' => $record['NgayMuon'],
-                    'NgayHenTra' => Carbon::parse($record['NgayMuon'])->addDays(14), // 14 ngày mượn
+                    'NgayHenTra' => Carbon::parse($record['NgayMuon'])->addDays(14),
                 ]);
                 $phieuMuon->MaPhieuMuon = $phieuMuon->generateMaPhieu();
                 $phieuMuon->save();
 
-                // Tạo chi tiết phiếu mượn
+
                 CT_PHIEUMUON::create([
                     'MaPhieuMuon' => $phieuMuon->id,
                     'MaSach' => $record['MaSach'],
@@ -154,14 +154,14 @@ class PhieuMuonSeeder extends Seeder
                     'TienDenBu' => $record['TienDenBu'],
                 ]);
                 
-                // Cập nhật trạng thái sách
+
                 if ($record['NgayTra']) {
-                    // Đã trả - cập nhật trạng thái sách
+
                     $book->TinhTrang = $record['TinhTrangSach'];
                     $book->save();
                 } else {
-                    // Chưa trả - đánh dấu đang mượn
-                    $book->TinhTrang = 0; // Đang mượn
+
+                    $book->TinhTrang = 0;
                     $book->save();
                 }
             }

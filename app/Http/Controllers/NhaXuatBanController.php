@@ -10,13 +10,13 @@ class NhaXuatBanController extends Controller
 {
     public function index()
     {
-        // Nếu là AJAX request, trả về JSON
+
         if (request()->expectsJson()) {
             $nhaXuatBans = NhaXuatBan::orderBy('TenNXB')->get();
             return response()->json($nhaXuatBans);
         }
         
-        // Nếu không, trả về view
+
         $nhaXuatBans = NhaXuatBan::orderBy('TenNXB')->get();
         return view('publishers', compact('nhaXuatBans'));
     }

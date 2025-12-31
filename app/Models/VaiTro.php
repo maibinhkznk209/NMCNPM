@@ -13,16 +13,13 @@ class VaiTro extends Model
     protected $primaryKey = 'id';
     public $incrementing = true;
     protected $keyType = 'int';
-    public $timestamps = false; // Bảng VAITRO không có timestamps
+    public $timestamps = false;
 
     protected $fillable = [
         'VaiTro',
     ];
 
-    /**
-     * Relationship with TaiKhoan (One-to-Many)
-     * Một vai trò có thể có nhiều tài khoản
-     */
+    
     public function taiKhoans()
     {
         return $this->hasMany(TaiKhoan::class, 'vaitro_id');

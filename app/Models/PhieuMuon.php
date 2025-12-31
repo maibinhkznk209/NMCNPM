@@ -65,13 +65,13 @@ class PhieuMuon extends Model
         $prefix = 'PM';
         $year = date('Y');
         
-        // Lấy số thứ tự cao nhất trong năm hiện tại
+
         $latestPhieu = self::where('MaPhieuMuon', 'LIKE', $prefix . $year . '%')
                           ->orderBy('MaPhieuMuon', 'desc')
                           ->first();
         
         if ($latestPhieu) {
-            // Lấy số thứ tự từ mã phiếu cuối cùng
+
             $lastNumber = (int)substr($latestPhieu->MaPhieuMuon, -4);
             $nextNumber = $lastNumber + 1;
         } else {
@@ -82,7 +82,7 @@ class PhieuMuon extends Model
         return $prefix . $year . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
-    // Accessor for Trạng thái
+
     public function getTrangThaiAttribute()
     {
         $chiTiet = $this->PM_S;

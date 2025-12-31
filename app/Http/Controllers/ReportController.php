@@ -135,15 +135,15 @@ class ReportController extends Controller
             ], 400);
         }
 
-        // Báo cáo trả trễ theo ngày: liệt kê các sách được trả trong ngày được chọn nhưng trả sau hạn.
+
         $rows = DB::table('CT_PHIEUMUON as ct')
         ->join('PHIEUMUON as pm', 'pm.MaPhieuMuon', '=', 'ct.MaPhieuMuon')
         ->join('DOCGIA as dg', 'dg.MaDocGia', '=', 'pm.MaDocGia')
         ->join('SACH as s', 's.MaSach', '=', 'ct.MaSach')
         ->join('DAUSACH as ds', 'ds.MaDauSach', '=', 's.MaDauSach')
-        // quá hạn tính tới reportDate: hạn trả < reportDate
+
         ->whereDate('pm.NgayHenTra', '<', $reportDate->toDateString())
-        // và (chưa trả) hoặc (đã trả nhưng trả trễ)
+
         ->where(function ($q) {
             $q->whereNull('ct.NgayTra')
             ->orWhereColumn('ct.NgayTra', '>', 'pm.NgayHenTra');
@@ -165,7 +165,7 @@ class ReportController extends Controller
     $overdueBooks = $rows->map(function ($r) use ($reportDate, $finePerDay) {
         $dueDate = Carbon::parse($r->due_date)->startOfDay();
 
-        // Nếu đã trả thì tính theo ngày trả, chưa trả thì tính tới reportDate
+
         $endDate = !empty($r->return_date)
             ? Carbon::parse($r->return_date)->startOfDay()
             : $reportDate;
